@@ -1,0 +1,520 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+
+TODO:
+- show correct info just before the capture starts (when the capture is in "waiting" status)
+
+-->
+<mx:WindowedApplication
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	layout="vertical"
+	horizontalAlign="center"
+	verticalAlign="middle"
+	width="700"
+	height="525"
+	applicationComplete="initApp(event);"
+	backgroundGradientAlphas="[1.0, 1.0]"
+	backgroundGradientColors="[#105761, #090D0B]"
+	showStatusBar="false"
+	frameRate="12">
+<mx:HTTPService
+	id="infoHTTPService"
+	resultFormat="e4x" 
+	result="infoHandler(event)"
+	fault="httpFault('monitorHTTPService',event)"
+	requestTimeout="3" />
+<mx:HTTPService
+	id="monitorHTTPService"
+	resultFormat="e4x" 
+	result="monitorHandler(event)"
+	fault="httpFault('monitorHTTPService',event)"
+	requestTimeout="3" />
+<mx:Zoom
+	id="zoomIn"
+	zoomHeightFrom="0.0"
+	zoomWidthFrom="0.0"
+    zoomHeightTo="1.0"
+    zoomWidthTo="1.0" />
+<mx:Zoom id="zoomOut" 
+	zoomHeightFrom="1.0"
+	zoomWidthFrom="1.0"
+	zoomHeightTo="0.0"
+	zoomWidthTo="0.0" />
+<mx:Sequence id="doGlow" repeatCount="0">
+	<mx:Glow
+		duration="100"
+		alphaFrom="0" alphaTo="1"
+		blurXFrom="0.0" blurXTo="30.0" 
+		blurYFrom="0.0" blurYTo="30.0"  strength="2"
+		color="0xFF5100" />
+	<mx:Glow
+		duration="800"  
+		alphaFrom="1" alphaTo="0"
+		blurXFrom="30.0" blurXTo="0.0"
+		blurYFrom="30.0" blurYTo="0.0"  strength="2"
+		color="0xFF5100" />
+</mx:Sequence>
+<mx:GlowFilter id="okGlow"
+	color="0x000000"
+	alpha="1"
+	blurX="25"
+	blurY="25" />
+<mx:GlowFilter id="warningGlow"
+	color="0xFF5100"
+	alpha="1"
+	blurX="25"
+	blurY="25" />
+<mx:Metadata>
+  [ResourceBundle("EchoMonitor")]
+</mx:Metadata>
+<mx:Script>
+        <![CDATA[
+            import flash.display.Loader;
+		    import flash.events.TimerEvent;
+		    import flash.utils.Timer;
+		    import mx.collections.*;
+			import mx.controls.Alert;
+			import mx.events.AIREvent;
+            import mx.rpc.http.HTTPService;
+            import mx.rpc.events.ResultEvent;
+            import mx.rpc.events.FaultEvent;
+            import mx.utils.Base64Encoder;
+            import mx.utils.StringUtil;
+            
+            private var applianceURL:String;
+            private var CONTROLKeyDown:Boolean = false;
+            private var HKeyDown:Boolean = false;
+            private var username:String, password:String;
+            private var monitorTimer:Timer, infoTimer:Timer;
+            private var audioError:int, videoError:int, displayError:int;
+            private var audioErrorStartTime:Date;
+            private var audioErrorCount:int = 0;
+            private var monitorVideoImageLoader:Loader;
+            private var monitorDisplayImageLoader:Loader;
+            private var monitorImageRequestHeader:URLRequestHeader;
+
+			private var audioErrorLevel:Number = 5000;
+			private var audioErrorLimit:int = 20;
+			private var audioWarningLimit:int = 10;
+            private var debug:Boolean = false;
+            private var defaultLocale:String = "en_US";
+            private var showFirstApplianceAutomatically:Boolean = false;
+            private var showRoomSelection:Boolean = true;
+            private var startFullscreen:Boolean = true;
+            
+            private const day:Number = 1000 * 60 * 60 * 24;
+            private const hour:Number = 1000 * 60 * 60;
+            private const minute:Number	 = 1000 * 60;
+            
+            private var configurationFile:File;
+            private var configurationFileStream:FileStream;
+            private var configurationXML:XML;
+            [Bindable] private var appliances:XMLListCollection;
+            
+            public function initApp(e:Event):void {
+            	loadConfiguration();
+
+				if(startFullscreen) {
+	            	stage.displayState = flash.display.StageDisplayState.FULL_SCREEN_INTERACTIVE;
+	   			}
+
+				resourceManager.addEventListener(Event.CHANGE, applyFormats);
+            	if(defaultLocale) {
+            		setLocale(defaultLocale);
+            	}
+
+            	if(showRoomSelection) {
+            		chooseApplianceLbl.setVisible(true);
+            		applianceChooser.setVisible(true);
+            	}
+
+            	if(debug) {
+            		debugInfo.setVisible(true);
+            	}
+            	
+            	stage.addEventListener(KeyboardEvent.KEY_DOWN, reportKeyDown);
+            	stage.addEventListener(KeyboardEvent.KEY_UP, reportKeyUp);
+				
+				monitorArea.filters = [okGlow];
+				
+				this.addEventListener(AIREvent.APPLICATION_ACTIVATE, applicationActivate);
+				this.addEventListener(AIREvent.APPLICATION_DEACTIVATE, applicationDeactivate);
+
+				infoTimer = new Timer(10000, 0);
+		        infoTimer.addEventListener("timer", infoTimerHandler);
+
+            	monitorTimer = new Timer(10000, 0);
+	            monitorTimer.addEventListener("timer", monitorTimerHandler);
+
+				monitorVideoImageLoader = new Loader();
+				monitorDisplayImageLoader = new Loader();
+
+				if(showFirstApplianceAutomatically) {
+					setMonitoredAppliance();
+		    	}
+            }
+            
+            private function loadConfiguration():void {
+            	configurationFile = File.applicationDirectory.resolvePath("configuration.xml");
+				configurationFileStream = new FileStream();
+			    configurationFileStream.open(configurationFile, FileMode.READ);
+			    configurationXML = XML(configurationFileStream.readUTFBytes(configurationFileStream.bytesAvailable));
+				configurationFileStream.close();
+				
+				appliances = new XMLListCollection(configurationXML.appliances.appliance);
+				
+				audioErrorLevel = Number(configurationXML.audioErrorLevel);
+				audioErrorLimit = int(configurationXML.audioErrorLimit);
+				audioWarningLimit = int(configurationXML.audioWarningLimit);
+				debug = configurationXML.debug.toLowerCase() == "true";
+				defaultLocale = String(configurationXML.defaultLocale);
+				showFirstApplianceAutomatically = configurationXML.showFirstApplianceAutomatically.toLowerCase() == "true";
+				showRoomSelection = configurationXML.showRoomSelection.toLowerCase() == "true";
+				startFullscreen = configurationXML.startFullscreen.toLowerCase() == "true";
+				
+				debugMe("info", configurationXML.toString());
+            }
+            
+            private function infoTimerHandler(event:TimerEvent):void {
+            	infoHTTPService.send();
+            }
+            
+            private function monitorTimerHandler(event:TimerEvent):void {
+				monitorHTTPService.send();
+            }
+            
+            private function infoHandler(event:ResultEvent):void {
+                var result:XML = event.result as XML;
+                var now:Date = new Date();
+                var startTime:Date;
+                
+                if(result.current.schedule.parameters != undefined && result.current.state == "active") {
+                	activateMonitoring();
+                	startTime = isoToDate(result.current.schedule.child("start-time"));
+                	var captureEnd:Number = startTime.getTime()+(result.current.schedule.duration*1000);
+                	var secondsToCaptureEnd:Number = Math.round((captureEnd-now.getTime())/1000);
+                	if(secondsToCaptureEnd >= 65)
+                	{
+	                	mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","active_capture_for_more_than_1_minute"), Math.round(secondsToCaptureEnd/60).toString());
+	                } else if(secondsToCaptureEnd >= 0) {
+	                	infoTimer.delay = 3000;
+	                	mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","active_capture_ending_in_less_than_1_minute"), secondsToCaptureEnd.toString());
+	                }
+                	secondaryInfo.text = "\"" + result.current.schedule.parameters.title + "\"";
+                } else if(result.current.schedule.parameters != undefined && result.current.state == "paused") {
+                	deactivateMonitoring();
+                	mainInfo.text = resourceManager.getString("EchoMonitor","active_capture_has_been_paused");
+                	secondaryInfo.text = "\"" + result.current.schedule.parameters.title + "\"";
+                } else if(result.next.parameters != undefined) {
+                	deactivateMonitoring();
+                	infoTimer.delay = 10000;
+	                startTime = isoToDate(result.next.child("start-time"));
+        	        var difference:Number = startTime.getTime()-now.getTime();
+        	        var minutesToNextCapture:int = Math.round(difference/minute);
+					var daysToNextCapture:int = Math.round(difference/day);
+					var durationInMinutes:int = int(result.next.child("duration"))/60;
+
+            	    if(difference/day < 1) {
+            	    	if(minutesToNextCapture > 1) {
+							mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","next_capture_in_more_than_1_minute"), minutesToNextCapture.toString());
+            	    	} else if(minutesToNextCapture == 1) {
+							mainInfo.text = resourceManager.getString("EchoMonitor","next_capture_in_about_1_minute");
+            	    	} else if(minutesToNextCapture < 1) {
+            	    		mainInfo.text = resourceManager.getString("EchoMonitor","next_capture_in_less_than_1_minute");
+            	    	}
+	                } else {
+	                	if(daysToNextCapture > 1) {
+	                		mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","next_capture_in_more_than_1_day"), daysToNextCapture.toString());
+	                	} else {
+	                		mainInfo.text = resourceManager.getString("EchoMonitor","next_capture_in_about_1_day");
+	                	}
+        	        }
+        	        
+        	        secondaryInfo.text = "\"" + result.next.parameters.title + "\" / " + startTime.toLocaleDateString() + " / " + durationInMinutes + " minutes";
+        	    } else {
+        	    	infoTimer.delay = 10000;
+        	    	mainInfo.text = resourceManager.getString("EchoMonitor", "no_next_capture");
+        	    	secondaryInfo.text = "";
+        	    }
+            }
+            
+            private function monitorHandler(event:ResultEvent):void {
+            	var result:XML = event.result as XML;
+            	if(result.state == "active" || result.child("confidence-monitoring") == "true" || result.current.child("confidence-monitoring") == "true") {
+            		if(monitorTimer.delay != 3000) {
+            			monitorTimer.delay = 3000;
+            		}
+            		
+            		if(!monitorArea.visible) {
+	            		monitorArea.setVisible(true);
+            		}
+            		
+            		var warning:Boolean = false;
+            		var error:Boolean = false;
+                	var randString:String = new Date().getTime().toString();
+                	
+                	var audioResult:XMLList = result.sources.source.(child("class").toString().search("audio")>-1);
+
+                	debugMe("info", audioResult.toString());
+
+                	if(audioResult.child("signal-present") == "false" || audioResult.channels.channel[1].peak <= audioErrorLevel) { // Audio signal missing
+                		audioErrorCount++;
+                		if(audioErrorCount > audioWarningLimit) {
+                			if(audioErrorCount > audioErrorLimit) {
+                				error = true;
+                			} else {
+                				warning = true;
+                			}
+	                		if(!checkAudio.visible) {
+	                			checkAudio.setVisible(true);
+	                		}
+	                	}
+                	} else { // Audio signal present
+                		audioErrorCount = 0;
+                		if(checkAudio.visible) {
+                			checkAudio.setVisible(false);
+                		}
+                	}
+                	
+                	var videoResult:XMLList = result.sources.source.(child("class").toString().search("video")>-1);
+                	if(videoResult.child("signal-present") == "false") { // Video signal missing
+                		error = true;
+                		videoLabel.setVisible(false);
+                		videoMonitor.setVisible(false);
+                		if(!checkVideo.visible) {
+                			checkVideo.setVisible(true);
+                		}
+                	} else { // Video signal present
+                		if(checkVideo.visible) {
+                			checkVideo.setVisible(false);
+                		}
+	                	videoLabel.setVisible(true);
+	                	getMonitorImage("video", applianceURL + "/monitoring/video_pal_4.jpg?" + randString, videoMonitor);
+                	}
+                	
+                	var displayResult:XMLList = result.sources.source.(child("class").toString().search("vga")>-1);
+                	if(displayResult.child("signal-present") == "false") { // Display signal missing
+                		error = true;
+	                	displayLabel.setVisible(false);
+	                	displayMonitor.setVisible(false);
+	                	if(!checkDisplay.visible) {
+	                		checkDisplay.setVisible(true);
+	                	}
+	                	
+	                } else { // Display signal present
+	                	if(checkDisplay.visible) {
+                			checkDisplay.setVisible(false);
+                		}
+	                	displayLabel.setVisible(true);
+	                	getMonitorImage("display", applianceURL + "/monitoring/vga_display_1.jpg?" + randString, displayMonitor);
+	                }
+	                
+					if(!warning && !error) {
+						if(doGlow.isPlaying) {
+							doGlow.stop();
+						}
+						monitorArea.filters = [okGlow];
+					} else if(error) {
+						if(!doGlow.isPlaying) {
+							doGlow.play([monitorArea]);
+						}
+					} else {
+						monitorArea.filters = [warningGlow];
+					}
+                } else {
+                	if(monitorTimer.delay != 10000) {
+                		monitorTimer.delay = 10000;
+                	}
+                	
+                	if(monitorArea.visible) {
+                		monitorArea.setVisible(false);
+                	}
+
+                	videoLabel.setVisible(false);
+                	videoMonitor.setVisible(false);
+                	displayLabel.setVisible(false);
+                	displayMonitor.setVisible(false);
+                }
+            }
+            
+            private function httpFault(source:String, event:FaultEvent):void {
+                	debugMe("error", "httpFault: (" + source + ") " + event.fault.faultString);
+            }
+            
+			public function getMonitorImage(type:String, address:String, toImage:Object):void {
+	            var request:URLRequest = new URLRequest(encodeURI(address));
+	            request.method = URLRequestMethod.POST;
+	            request.requestHeaders.push(monitorImageRequestHeader);
+				var _loader:Loader;
+	            switch(type) {
+	            	case "video":
+	            		monitorVideoImageLoader.unload();
+	            		_loader = monitorVideoImageLoader;
+	            		break;
+	            	case "display":
+	            		monitorDisplayImageLoader.unload();
+	            		_loader = monitorDisplayImageLoader;
+	            		break;
+	            }
+				_loader.contentLoaderInfo.addEventListener(Event.COMPLETE,function(e:Event):void{ 
+					toImage.source = e.currentTarget.content;
+					toImage.setVisible(true);
+				});
+				_loader.load(request);
+			}
+			
+			private function applyFormats(e:Event):void {
+//	            dateValue = dateFormatter.format(d);
+//	            timeValue = timeFormatter.format(d); 
+//	            currencyValue = currencyFormatter.format(1000);         
+	        }
+
+            public function getTimestamp(date:Date):Number {
+				var unixTime:Number = Math.round(date.getTime()/1000);
+				return unixTime;
+			}
+            
+            private function isoToDate(value:String):Date {
+                var dateStr:String = value;
+                dateStr = dateStr.replace(/\-/g, "/");
+                dateStr = dateStr.replace("T", " ");
+                dateStr = dateStr.replace("Z", " GMT-0000");
+                dateStr = dateStr.replace(".000", "");
+                return new Date(Date.parse(dateStr));
+            }
+            
+            public function getBase64UsernamePassword():String {
+            	var encoder:Base64Encoder = new Base64Encoder();
+        		encoder.insertNewLines = false;
+				encoder.encode(username + ":" + password);
+				return encoder.toString();
+            }
+            
+            private function setMonitoredAppliance():void {
+            	applianceURL = applianceChooser.selectedItem.address;
+            	username = applianceChooser.selectedItem.username;
+            	password = applianceChooser.selectedItem.password;
+            	var base64UsernamePassword:String = getBase64UsernamePassword();
+            	
+            	infoHTTPService.url = applianceURL + "/status/captures";
+				infoHTTPService.headers = {Authorization:"Basic " + base64UsernamePassword};
+            	infoHTTPService.send();
+            	if(!infoTimer.running) {
+            		infoTimer.start();
+            	}
+            	
+            	monitorHTTPService.url = applianceURL + "/status/monitoring";
+            	monitorHTTPService.headers = {Authorization:"Basic " + base64UsernamePassword};
+
+	            monitorImageRequestHeader = new URLRequestHeader("Authorization","Basic " + base64UsernamePassword);
+            	
+            	debugMe("info", "Appliance selected: " + applianceChooser.selectedItem.name + " (" + applianceURL + ")");
+			}
+			
+			private function activateMonitoring():void {
+				if(!monitorTimer.running) {
+					monitorTimer.start();
+				}
+			}
+			
+			private function deactivateMonitoring():void {
+				if(monitorTimer.running) {
+					monitorTimer.stop();
+				}
+				if(monitorArea.visible) {
+					monitorArea.setVisible(false);
+				}
+				if(doGlow.isPlaying) {
+					doGlow.stop();
+				}
+				
+				monitorArea.filters = [okGlow];
+				audioErrorCount = 0;
+			}
+			
+			private function changeView():void {
+				if(stage.displayState != StageDisplayState.NORMAL) {
+					stage.displayState = StageDisplayState.NORMAL;
+					changeViewBtn.label = resourceManager.getString("EchoMonitor", "fullscreen");
+				} else {
+					stage.displayState = StageDisplayState.FULL_SCREEN_INTERACTIVE;
+					changeViewBtn.label = resourceManager.getString("EchoMonitor", "exit_fullscreen");
+				}
+			}
+			
+			private function setLocale(locale:String):void {
+				resourceManager.localeChain = [locale];
+			}
+			
+			private function debugMe(type:String, debugString:String):void {
+				if(debug && debugString.length > 0) {
+					debugInfo.text += debugString + "\n ----- \n";
+				}
+			}
+
+			private function applicationActivate(event:Event):void {
+			    stage.frameRate = 12;
+			}
+
+			private function applicationDeactivate(event:Event):void {
+			    stage.frameRate = 1;
+			}
+
+            private function reportKeyDown(e:KeyboardEvent):void {
+            	switch(e.keyCode) {
+            		case Keyboard.CONTROL:
+            			CONTROLKeyDown = true;
+            			break;
+            		case Keyboard.H:
+            			HKeyDown = true;
+            			break;
+            	}
+            	checkKeys();
+            }
+            
+            private function reportKeyUp(e:KeyboardEvent):void {
+            	switch(e.keyCode) {
+            		case Keyboard.CONTROL:
+            			CONTROLKeyDown = false;
+            			break;
+            		case Keyboard.H:
+            			HKeyDown = false;
+            			break;
+            	}
+				checkKeys();
+            }
+            
+            private function checkKeys():void {
+            	// Hides or shows the top control bar if CTRL+H are pressed on the keyboard
+            	if(CONTROLKeyDown && HKeyDown) {
+            		monitorControlBar.visible = !monitorControlBar.visible;
+            	}
+            }
+        ]]>
+    </mx:Script>
+	<mx:ApplicationControlBar dock="true" id="monitorControlBar">
+		<mx:Image source="@Embed(source='assets/en_US.svg')" click="setLocale('en_US')" width="20" height="12"/>
+		<mx:Image source="@Embed(source='assets/et_EE.svg')" click="setLocale('et_EE')" width="20" height="12"/>
+		<mx:Spacer width="100%"/>
+    	<mx:Label text="{resourceManager.getString('EchoMonitor', 'select_room')}" id="chooseApplianceLbl" visible="false"/>
+    	<mx:ComboBox editable="false" id="applianceChooser" dataProvider="{appliances}" labelField="name" change="setMonitoredAppliance();" visible="false"></mx:ComboBox>
+    	<mx:Button click="changeView();" label="{resourceManager.getString('EchoMonitor', 'exit_fullscreen')}" id="changeViewBtn"/>
+    	<mx:Button click="NativeApplication.nativeApplication.exit();" label="{resourceManager.getString('EchoMonitor', 'exit_application')}"/>
+	</mx:ApplicationControlBar>
+	<mx:VBox width="100%" height="85%" horizontalAlign="center">
+		<mx:Spacer height="2%"/>
+	    <mx:Label id="mainInfo" fontSize="30" color="#F0DCB9" width="90%" textAlign="center" paddingBottom="-12"/>
+	    <mx:Label id="secondaryInfo" fontSize="22" color="#F0DCB9" width="90%" textAlign="center"/>
+	    <mx:Spacer height="2%"/>
+		<mx:Canvas width="90%" id="monitorArea" visible="false" height="70%" backgroundColor="#090D0B" cornerRadius="10" borderColor="#090D0B" borderStyle="solid" showEffect="zoomIn" hideEffect="zoomOut">
+		    <mx:Image width="320" height="240" id="videoMonitor" visible="false" horizontalCenter="-185" verticalCenter="20"/>
+		    <mx:Image width="320" height="240" id="displayMonitor" visible="false" horizontalCenter="185" verticalCenter="20"/>
+		    <mx:Label text="{resourceManager.getString('EchoMonitor', 'video')}" fontSize="20" textAlign="center" id="videoLabel" visible="false" width="320" color="#F0DCB9" horizontalCenter="-185" verticalCenter="120"/>
+		    <mx:Label text="{resourceManager.getString('EchoMonitor', 'display')}" fontSize="20" textAlign="center" id="displayLabel" visible="false" width="320" color="#F0DCB9" horizontalCenter="185" verticalCenter="120"/>
+		    <mx:Label text="{resourceManager.getString('EchoMonitor', 'audio_low')}" visible="false" horizontalCenter="0" verticalCenter="-130" width="90%" color="#FF5100" fontSize="30" fontWeight="bold" textAlign="center" id="checkAudio"/>
+		    <mx:Text text="{resourceManager.getString('EchoMonitor', 'video_missing')}" visible="false" horizontalCenter="-185" verticalCenter="0" color="#FF5100" width="320" fontSize="30" fontWeight="bold" textAlign="center" id="checkVideo"/>
+		    <mx:Text text="{resourceManager.getString('EchoMonitor', 'display_missing')}" visible="false" horizontalCenter="185" verticalCenter="0" color="#FF5100" width="320" fontSize="30" fontWeight="bold" textAlign="center" id="checkDisplay"/>
+	    </mx:Canvas>
+	</mx:VBox>
+	<mx:TextArea width="90%" height="15%" id="debugInfo" visible="false" backgroundColor="#105761" color="#FFFFFF" backgroundAlpha="0.5"/>
+</mx:WindowedApplication>
