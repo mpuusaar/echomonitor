@@ -2,7 +2,11 @@
 <!--
 
 TODO:
-- show correct info just before the capture starts (when the capture is in "waiting" status)
+- handle locales correctly
+- handle extended captures correctly
+- clear audio error message correctly when a capture ends
+- display error message if there are no appliances defined in configuration.xml
+- check the configuration file for correct info 
 
 -->
 <mx:WindowedApplication
@@ -83,6 +87,7 @@ TODO:
             
             private var applianceURL:String;
             private var CONTROLKeyDown:Boolean = false;
+            private var DKeyDown:Boolean = false;
             private var HKeyDown:Boolean = false;
             private var username:String, password:String;
             private var monitorTimer:Timer, infoTimer:Timer;
@@ -187,32 +192,57 @@ TODO:
                 var result:XML = event.result as XML;
                 var now:Date = new Date();
                 var startTime:Date;
+                var durationInMinutes:int;
+                var difference:Number;
+                var minutesToNextCapture:int;
                 
-                if(result.current.schedule.parameters != undefined && result.current.state == "active") {
-                	activateMonitoring();
+                if(result.current.schedule.parameters != undefined) {
                 	startTime = isoToDate(result.current.schedule.child("start-time"));
-                	var captureEnd:Number = startTime.getTime()+(result.current.schedule.duration*1000);
-                	var secondsToCaptureEnd:Number = Math.round((captureEnd-now.getTime())/1000);
-                	if(secondsToCaptureEnd >= 65)
-                	{
-	                	mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","active_capture_for_more_than_1_minute"), Math.round(secondsToCaptureEnd/60).toString());
-	                } else if(secondsToCaptureEnd >= 0) {
+                	durationInMinutes = int(result.current.schedule.child("duration"))/60;
+	               	var captureEnd:Number = startTime.getTime()+(result.current.schedule.duration*1000);
+	                var secondsToCaptureEnd:Number = Math.round((captureEnd-now.getTime())/1000);
+	                	
+                	if(result.current.state == "active") {
+	                	activateMonitoring();
+	                	if(secondsToCaptureEnd >= 65)
+	                	{
+	                		infoTimer.delay = 10000;
+		                	mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","active_capture_for_more_than_1_minute"), Math.round(secondsToCaptureEnd/60).toString());
+		                } else if(secondsToCaptureEnd > 0) {
+		                	infoTimer.delay = 3000;
+		                	mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","active_capture_ending_in_less_than_1_minute"), secondsToCaptureEnd.toString());
+		                } else if(secondsToCaptureEnd <= 0) {
+		                	mainInfo.text = resourceManager.getString("EchoMonitor","capture_is_stopping");
+		                }
+	                	secondaryInfo.text = "\"" + result.current.schedule.parameters.title + "\"";
+                	} else if(result.current.state == "paused") {
+	                	deactivateMonitoring();
+	                	mainInfo.text = resourceManager.getString("EchoMonitor","active_capture_has_been_paused");
+	                	secondaryInfo.text = "\"" + result.current.schedule.parameters.title + "\"";
+	                } else if(result.current.schedule.parameters != undefined && result.current.state == "waiting") {
 	                	infoTimer.delay = 3000;
-	                	mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","active_capture_ending_in_less_than_1_minute"), secondsToCaptureEnd.toString());
+	                	difference = startTime.getTime()-now.getTime();
+	        	        var secondsToNextCapture:int = Math.round(difference/1000);
+	        	        minutesToNextCapture = Math.round(difference/minute);
+	                	if(secondsToNextCapture > 90) {
+							mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","next_capture_in_more_than_1_minute"), minutesToNextCapture.toString());
+            	    	} else if(secondsToNextCapture > 60) {
+							mainInfo.text = resourceManager.getString("EchoMonitor","next_capture_in_about_1_minute");
+            	    	} else if(secondsToNextCapture <= 60) {
+            	    		mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","next_capture_in_seconds"), secondsToNextCapture.toString());
+            	    	} else if(secondsToNextCapture <= 0) {
+            	    		mainInfo.text = resourceManager.getString("EchoMonitor","capture_is_starting");
+            	    	}
+	                	secondaryInfo.text = "\"" + result.current.schedule.parameters.title + "\" / " + startTime.toLocaleDateString() + " / " + durationInMinutes + " minutes";
 	                }
-                	secondaryInfo.text = "\"" + result.current.schedule.parameters.title + "\"";
-                } else if(result.current.schedule.parameters != undefined && result.current.state == "paused") {
-                	deactivateMonitoring();
-                	mainInfo.text = resourceManager.getString("EchoMonitor","active_capture_has_been_paused");
-                	secondaryInfo.text = "\"" + result.current.schedule.parameters.title + "\"";
                 } else if(result.next.parameters != undefined) {
                 	deactivateMonitoring();
                 	infoTimer.delay = 10000;
 	                startTime = isoToDate(result.next.child("start-time"));
-        	        var difference:Number = startTime.getTime()-now.getTime();
-        	        var minutesToNextCapture:int = Math.round(difference/minute);
+        	        difference = startTime.getTime()-now.getTime();
+        	        minutesToNextCapture = Math.round(difference/minute);
 					var daysToNextCapture:int = Math.round(difference/day);
-					var durationInMinutes:int = int(result.next.child("duration"))/60;
+					durationInMinutes = int(result.next.child("duration"))/60;
 
             	    if(difference/day < 1) {
             	    	if(minutesToNextCapture > 1) {
@@ -465,6 +495,9 @@ TODO:
             		case Keyboard.CONTROL:
             			CONTROLKeyDown = true;
             			break;
+            		case Keyboard.D:
+            			DKeyDown = true;
+            			break;
             		case Keyboard.H:
             			HKeyDown = true;
             			break;
@@ -477,9 +510,13 @@ TODO:
             		case Keyboard.CONTROL:
             			CONTROLKeyDown = false;
             			break;
+            		case Keyboard.D:
+            			DKeyDown = false;
+            			break;
             		case Keyboard.H:
             			HKeyDown = false;
             			break;
+            		
             	}
 				checkKeys();
             }
@@ -488,6 +525,10 @@ TODO:
             	// Hides or shows the top control bar if CTRL+H are pressed on the keyboard
             	if(CONTROLKeyDown && HKeyDown) {
             		monitorControlBar.visible = !monitorControlBar.visible;
+            	// Hides or shows the debugging area if CTRL+D are pressed on the keyboard	
+            	} else if(CONTROLKeyDown && DKeyDown) {
+            		debug = !debug;
+            		debugInfo.visible = !debugInfo.visible;
             	}
             }
         ]]>
