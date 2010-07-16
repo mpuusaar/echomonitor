@@ -1,0 +1,29 @@
+**********************
+README for EchoMonitor
+**********************
+Last updated: 15th July 2010
+
+http://code.google.com/p/echomonitor/
+
+1) INSTALLATION
+2) CONFIGURATION
+3) CHANGELOG
+
+***************
+1) INSTALLATION
+***************
+
+
+****************
+2) CONFIGURATION
+****************
+
+
+************
+3) CHANGELOG
+************
+Version 0.9.6
+- improved configuration file handling: display error message when the configuration file is missing
+
+Version 0.9.5 - first public release
+- improved display and accurasy of next capture just before the next capture starts

@@ -2,9 +2,9 @@
 <configuration>
 	<appliances>
 		<appliance>
-			<name>My Appliance</name>
-			<address>http://192.168.0.1:443</address>
-			<username>username</username>
+			<name>My Appliance 1</name>
+			<address>https://192.168.0.1:8443</address>
+			<username>instructor</username>
 			<password>password</password>
 		</appliance>
 	</appliances>

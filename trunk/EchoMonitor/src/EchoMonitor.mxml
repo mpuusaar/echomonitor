@@ -1,12 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
 
-TODO:
-- handle locales correctly
-- handle extended captures correctly
-- clear audio error message correctly when a capture ends
-- display error message if there are no appliances defined in configuration.xml
-- check the configuration file for correct info 
+   Copyright 2010 Marko Puusaar / Estonian Information Technology College
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+   
+   TODO:
+    - handle locales correctly
+    - handle extended captures correctly
+    - clear audio error message correctly when a capture ends
+    - check the configuration file for correct info 
 
 -->
 <mx:WindowedApplication
@@ -107,9 +120,9 @@ TODO:
             private var showRoomSelection:Boolean = true;
             private var startFullscreen:Boolean = true;
             
-            private const day:Number = 1000 * 60 * 60 * 24;
-            private const hour:Number = 1000 * 60 * 60;
-            private const minute:Number	 = 1000 * 60;
+            private const day:int = 1000 * 60 * 60 * 24;
+            private const hour:int = 1000 * 60 * 60;
+            private const minute:int = 1000 * 60;
             
             private var configurationFile:File;
             private var configurationFileStream:FileStream;
@@ -117,16 +130,20 @@ TODO:
             [Bindable] private var appliances:XMLListCollection;
             
             public function initApp(e:Event):void {
-            	loadConfiguration();
-
-				if(startFullscreen) {
-	            	stage.displayState = flash.display.StageDisplayState.FULL_SCREEN_INTERACTIVE;
-	   			}
-
 				resourceManager.addEventListener(Event.CHANGE, applyFormats);
             	if(defaultLocale) {
             		setLocale(defaultLocale);
             	}
+
+            	loadConfiguration();
+            	
+            	if(defaultLocale) {
+            		setLocale(defaultLocale);
+            	}
+
+				if(startFullscreen) {
+	            	stage.displayState = flash.display.StageDisplayState.FULL_SCREEN_INTERACTIVE;
+	   			}
 
             	if(showRoomSelection) {
             		chooseApplianceLbl.setVisible(true);
@@ -161,23 +178,36 @@ TODO:
             
             private function loadConfiguration():void {
             	configurationFile = File.applicationDirectory.resolvePath("configuration.xml");
-				configurationFileStream = new FileStream();
-			    configurationFileStream.open(configurationFile, FileMode.READ);
-			    configurationXML = XML(configurationFileStream.readUTFBytes(configurationFileStream.bytesAvailable));
-				configurationFileStream.close();
-				
-				appliances = new XMLListCollection(configurationXML.appliances.appliance);
-				
-				audioErrorLevel = Number(configurationXML.audioErrorLevel);
-				audioErrorLimit = int(configurationXML.audioErrorLimit);
-				audioWarningLimit = int(configurationXML.audioWarningLimit);
-				debug = configurationXML.debug.toLowerCase() == "true";
-				defaultLocale = String(configurationXML.defaultLocale);
-				showFirstApplianceAutomatically = configurationXML.showFirstApplianceAutomatically.toLowerCase() == "true";
-				showRoomSelection = configurationXML.showRoomSelection.toLowerCase() == "true";
-				startFullscreen = configurationXML.startFullscreen.toLowerCase() == "true";
-				
-				debugMe("info", configurationXML.toString());
+            	if(configurationFile.exists) {
+					configurationFileStream = new FileStream();
+				    configurationFileStream.open(configurationFile, FileMode.READ);
+				    configurationXML = XML(configurationFileStream.readUTFBytes(configurationFileStream.bytesAvailable));
+					configurationFileStream.close();
+					
+					if(configurationXML.appliances.children().length() > 0) {
+						appliances = new XMLListCollection(configurationXML.appliances.appliance);
+					} else {
+						Alert.show(resourceManager.getString("EchoMonitor","error_no_appliances_in_configuration"),resourceManager.getString("EchoMonitor","error_title"),Alert.OK,this,function(e:Event):void {
+            				NativeApplication.nativeApplication.exit();
+            			});	
+					}
+					
+					
+					audioErrorLevel = Number(configurationXML.audioErrorLevel);
+					audioErrorLimit = int(configurationXML.audioErrorLimit);
+					audioWarningLimit = int(configurationXML.audioWarningLimit);
+					debug = configurationXML.debug.toLowerCase() == "true";
+					defaultLocale = String(configurationXML.defaultLocale);
+					showFirstApplianceAutomatically = configurationXML.showFirstApplianceAutomatically.toLowerCase() == "true";
+					showRoomSelection = configurationXML.showRoomSelection.toLowerCase() == "true";
+					startFullscreen = configurationXML.startFullscreen.toLowerCase() == "true";
+					
+					debugMe("info", configurationXML.toString());
+            	} else {
+            		Alert.show(resourceManager.getString("EchoMonitor","error_configuration_file_missing"),resourceManager.getString("EchoMonitor","error_title"),Alert.OK,this,function(e:Event):void {
+            			NativeApplication.nativeApplication.exit();
+            		});
+            	}
             }
             
             private function infoTimerHandler(event:TimerEvent):void {
@@ -371,7 +401,7 @@ TODO:
                 	debugMe("error", "httpFault: (" + source + ") " + event.fault.faultString);
             }
             
-			public function getMonitorImage(type:String, address:String, toImage:Object):void {
+			private function getMonitorImage(type:String, address:String, toImage:Object):void {
 	            var request:URLRequest = new URLRequest(encodeURI(address));
 	            request.method = URLRequestMethod.POST;
 	            request.requestHeaders.push(monitorImageRequestHeader);
@@ -399,7 +429,7 @@ TODO:
 //	            currencyValue = currencyFormatter.format(1000);         
 	        }
 
-            public function getTimestamp(date:Date):Number {
+            private function getTimestamp(date:Date):Number {
 				var unixTime:Number = Math.round(date.getTime()/1000);
 				return unixTime;
 			}
@@ -413,7 +443,7 @@ TODO:
                 return new Date(Date.parse(dateStr));
             }
             
-            public function getBase64UsernamePassword():String {
+            private function getBase64UsernamePassword():String {
             	var encoder:Base64Encoder = new Base64Encoder();
         		encoder.insertNewLines = false;
 				encoder.encode(username + ":" + password);
