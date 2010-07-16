@@ -1,0 +1,13 @@
+#summary Screenshots of EchoMonitor.
+
+Next scheduled capture:
+
+<img src="http://estmarx.pri.ee/echomonitor/screenshots/next_capture.png" width="600" height="375" />
+
+Current capture (without problems):
+
+<img src="http://estmarx.pri.ee/echomonitor/screenshots/current_capture_ok.png" width="600" height="375" />
+
+Current capture (no audio):
+
+<img src="http://estmarx.pri.ee/echomonitor/screenshots/current_capture_error.png" width="600" height="375" />
