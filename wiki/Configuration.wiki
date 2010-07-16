@@ -1,0 +1,41 @@
+#summary Configuring EchoMonitor.
+#labels Phase-Deploy,Featured
+
+== Introduction ==
+
+EchoMonitor can be configured through a simple XML file _configuration.xml_ that resides in the EchoMonitor installation folder.
+
+This document has vital information about the first-time configuration of EchoMonitor and for more advanced configuration.
+
+
+== First-time configuration ==
+
+Before running EchoMonitor for the first time you will need to add information about your Echo360 capture appliance(s) into the configuration file _configuration.xml_. You can find the configuration file from the same directory where you installed EchoMonitor itself (Windows - C:\Program Files\EchoMonitor\; Mac OS X - /Applications/EchoMonitor/). The configuration file is in XML format and you can edit it with Notepad (Windows) or TextEdit (Mac OS X) or with your favorite text-editor.
+
+Normally a new configuration file looks like this:
+{{{
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+	<appliances>
+		<appliance>
+			<name>My Appliance 1</name>
+			<address>https://192.168.0.1:8443</address>
+			<username>instructor</username>
+			<password>password</password>
+		</appliance>
+	</appliances>
+	<audioErrorLevel>5000</audioErrorLevel>
+	<audioErrorLimit>20</audioErrorLimit>
+	<audioWarningLimit>10</audioWarningLimit>
+	<debug>false</debug>
+	<defaultLocale>en_US</defaultLocale>
+	<showFirstApplianceAutomatically>true</showFirstApplianceAutomatically>
+	<showRoomSelection>true</showRoomSelection>
+	<startFullscreen>true</startFullscreen>
+</configuration>
+}}}
+
+
+== Advanced configuration ==
+
+This section will describe all the advanced configuration options available for EchoMonitor.
