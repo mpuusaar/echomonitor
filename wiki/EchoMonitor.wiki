@@ -1,0 +1,5 @@
+#summary Overall description of EchoMonitor.
+
+== Introduction ==
+
+EchoMonitor is a stand-alone Adobe AIR application for monitoring Echo360 lecture capture appliances.
