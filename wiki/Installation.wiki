@@ -1,4 +1,4 @@
-#summary Installing EchoMonitor
+#summary Installing EchoMonitor.
 #labels Phase-Deploy,Featured,Installation
 
 == Requirements ==
