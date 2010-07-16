@@ -1,0 +1,8 @@
+#summary Translating EchoMonitor.
+
+== Introduction ==
+
+EchoMonitor can be translated/localized into any given language really easily by editing only one simple text-file and submitting it to this project.
+
+
+== Details ==
