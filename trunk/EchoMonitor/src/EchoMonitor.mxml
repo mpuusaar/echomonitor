@@ -19,7 +19,6 @@
     - handle locales correctly
     - handle extended captures correctly
     - clear audio error message correctly when a capture ends
-    - check the configuration file for correct info 
 
 -->
 <mx:WindowedApplication
@@ -27,8 +26,8 @@
 	layout="vertical"
 	horizontalAlign="center"
 	verticalAlign="middle"
-	width="700"
-	height="525"
+	width="800"
+	height="600"
 	applicationComplete="initApp(event);"
 	backgroundGradientAlphas="[1.0, 1.0]"
 	backgroundGradientColors="[#105761, #090D0B]"
@@ -119,7 +118,7 @@
             private var showFirstApplianceAutomatically:Boolean = false;
             private var showRoomSelection:Boolean = true;
             private var startFullscreen:Boolean = true;
-            
+
             private const day:int = 1000 * 60 * 60 * 24;
             private const hour:int = 1000 * 60 * 60;
             private const minute:int = 1000 * 60;
@@ -314,8 +313,6 @@
                 	var randString:String = new Date().getTime().toString();
                 	
                 	var audioResult:XMLList = result.sources.source.(child("class").toString().search("audio")>-1);
-
-                	debugMe("info", audioResult.toString());
 
                 	if(audioResult.child("signal-present") == "false" || audioResult.channels.channel[1].peak <= audioErrorLevel) { // Audio signal missing
                 		audioErrorCount++;

@@ -12,18 +12,49 @@ http://code.google.com/p/echomonitor/
 ***************
 1) INSTALLATION
 ***************
+Requirements:
+ - Installation file of EchoMonitor. You can download the latest version of EchoMonitor from http://code.google.com/p/echomonitor/downloads/list. 
+ - Adobe AIR installer on your computer. You can get the latest version of Adobe AIR from http://get.adobe.com/air/. If you have Adobe Reader on your computer then you probably already have Adobe AIR also. 
+ - Administrator level access to EchoSystem Server. This may be needed to reconfigure your Echo360 capture appliances.
 
+Installation:
+ - Run the downloaded EchoMonitor installation file (EchoMonitor_x.x.x.air) from your computer as an Administrator (or as an user with administrator privileges). 
+ - Confirm the security exception for EchoMonitor (EchoMonitor application has been self-signed an thus the security certificate is not recognized by your computer). 
+ - Wait for the installation to finish. Don't run EchoMonitor jet - you will need to configure it first.
 
 ****************
 2) CONFIGURATION
 ****************
+Before running EchoMonitor for the first time you will need to add information about your Echo360 capture appliance(s) into the configuration file configuration.xml. You can find the configuration file from the same directory where you installed EchoMonitor itself (Windows - C:\Program Files\EchoMonitor\; Mac OS X - /Applications/EchoMonitor/). The configuration file is in XML format and you can edit it with Notepad (Windows) or TextEdit? (Mac OS X) or with your favorite text-editor. 
+
+Normally a new configuration file looks like this: 
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+        <appliances>
+                <appliance>
+                        <name>My Appliance 1</name>
+                        <address>https://192.168.0.1:8443</address>
+                        <username>instructor</username>
+                        <password>password</password>
+                </appliance>
+        </appliances>
+        <audioErrorLevel>5000</audioErrorLevel>
+        <audioErrorLimit>20</audioErrorLimit>
+        <audioWarningLimit>10</audioWarningLimit>
+        <debug>false</debug>
+        <defaultLocale>en_US</defaultLocale>
+        <showFirstApplianceAutomatically>true</showFirstApplianceAutomatically>
+        <showRoomSelection>true</showRoomSelection>
+        <startFullscreen>true</startFullscreen>
+</configuration>
+
 
 
 ************
 3) CHANGELOG
 ************
 Version 0.9.6
-- improved configuration file handling: display error message when the configuration file is missing
+- improved configuration file handling: display error message when the configuration file is missing and when there are no appliances defined in the configuration
 
 Version 0.9.5 - first public release
 - improved display and accurasy of next capture just before the next capture starts
