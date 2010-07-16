@@ -1,5 +1,5 @@
 #summary Configuring EchoMonitor.
-#labels Phase-Deploy,Featured
+#labels Phase-Deploy,Featured,Configuration
 
 == Introduction ==
 
