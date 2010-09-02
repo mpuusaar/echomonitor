@@ -16,7 +16,6 @@
    limitations under the License.
    
    TODO:
-    - handle extended captures correctly
     - clear audio error message when a capture ends
 
 -->
@@ -83,6 +82,10 @@
 	yTo="300" />
 <mx:Move id="moveUp"
 	yTo="0" />
+<mx:DateFormatter id="dateFormatter" 
+	formatString="{resourceManager.getString('EchoMonitor', 'DATE_FORMAT')}" />
+<mx:DateFormatter id="timeFormatter"
+	formatString="{resourceManager.getString('EchoMonitor', 'TIME_FORMAT')}" />   
 <mx:Metadata>
   [ResourceBundle("EchoMonitor")]
 </mx:Metadata>
@@ -234,13 +237,14 @@
                 
                 if(result.current.schedule.parameters != undefined) {
                 	startTime = isoToDate(result.current.schedule.child("start-time"));
-                	durationInMinutes = int(result.current.schedule.child("duration"))/60;
-	               	var captureEnd:Number = startTime.getTime()+(result.current.schedule.duration*1000);
+                	durationInMinutes = int(result.current.duration)/60;
+	               	var captureEnd:Number = startTime.getTime()+(result.current.duration*1000);
 	                var secondsToCaptureEnd:Number = Math.round((captureEnd-now.getTime())/1000);
+	                debugMe("info",result.current);
 	                	
                 	if(result.current.state == "active") {
 	                	activateMonitoring();
-	                	if(secondsToCaptureEnd >= 65)
+	                	if(secondsToCaptureEnd >= 59)
 	                	{
 	                		infoTimer.delay = 10000;
 		                	mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","active_capture_for_more_than_1_minute"), Math.round(secondsToCaptureEnd/60).toString());
@@ -269,7 +273,7 @@
             	    	} else if(secondsToNextCapture <= 0) {
             	    		mainInfo.text = resourceManager.getString("EchoMonitor","capture_is_starting");
             	    	}
-	                	secondaryInfo.text = "\"" + result.current.schedule.parameters.title + "\" / " + startTime.toLocaleDateString() + " / " + durationInMinutes + " " + resourceManager.getString("EchoMonitor","minutes");
+	                	secondaryInfo.text = "\"" + result.current.schedule.parameters.title + "\"\n" + dateFormatter.format(startTime) + " @ " + timeFormatter.format(startTime) + " / " + durationInMinutes + " " + resourceManager.getString("EchoMonitor","minutes");
 	                }
                 } else if(result.next.parameters != undefined) {
                 	deactivateMonitoring();
@@ -300,7 +304,7 @@
 						mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","next_capture_in_days"), a.toString(), b.toString());
         	        }
         	        
-        	        secondaryInfo.text = "\"" + result.next.parameters.title + "\" / " + startTime.toLocaleDateString() + " / " + durationInMinutes + " " + resourceManager.getString("EchoMonitor","minutes");;
+        	        secondaryInfo.text = "\"" + result.next.parameters.title + "\"\n" + dateFormatter.format(startTime) + " @ " + timeFormatter.format(startTime) + " / " + durationInMinutes + " " + resourceManager.getString("EchoMonitor","minutes");;
         	    } else {
         	    	infoTimer.delay = 10000;
         	    	mainInfo.text = resourceManager.getString("EchoMonitor", "no_next_capture");
@@ -600,8 +604,8 @@
 	</mx:ApplicationControlBar>
 	<mx:VBox width="100%" height="85%" horizontalAlign="center" id="middleVBox">
 		<mx:Spacer height="2%"/>
-	    <mx:Label id="mainInfo" fontSize="30" color="#F0DCB9" width="90%" textAlign="center" paddingBottom="-12"/>
-	    <mx:Label id="secondaryInfo" fontSize="22" color="#F0DCB9" width="90%" textAlign="center"/>
+	    <mx:Text id="mainInfo" fontSize="30" color="#F0DCB9" width="90%" textAlign="center" paddingBottom="-10"/>
+	    <mx:Text id="secondaryInfo" fontSize="22" color="#F0DCB9" width="90%" textAlign="center"/>
 	    <mx:Spacer height="2%"/>
 		<mx:Canvas width="90%" id="monitorArea" visible="false" height="70%" backgroundColor="#090D0B" cornerRadius="10" borderColor="#090D0B" borderStyle="solid" showEffect="zoomIn" hideEffect="zoomOut">
 		    <mx:Image width="320" height="240" id="videoMonitor" visible="false" horizontalCenter="-185" verticalCenter="20"/>
