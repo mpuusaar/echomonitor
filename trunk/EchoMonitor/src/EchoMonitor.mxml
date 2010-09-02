@@ -16,9 +16,8 @@
    limitations under the License.
    
    TODO:
-    - handle locales correctly
     - handle extended captures correctly
-    - clear audio error message correctly when a capture ends
+    - clear audio error message when a capture ends
 
 -->
 <mx:WindowedApplication
@@ -80,6 +79,10 @@
 	alpha="1"
 	blurX="25"
 	blurY="25" />
+<mx:Move id="moveDown"
+	yTo="300" />
+<mx:Move id="moveUp"
+	yTo="0" />
 <mx:Metadata>
   [ResourceBundle("EchoMonitor")]
 </mx:Metadata>
@@ -128,11 +131,9 @@
             private var configurationXML:XML;
             [Bindable] private var appliances:XMLListCollection;
             
+            // initApp
             public function initApp(e:Event):void {
-				resourceManager.addEventListener(Event.CHANGE, applyFormats);
-            	if(defaultLocale) {
-            		setLocale(defaultLocale);
-            	}
+				resourceManager.addEventListener(Event.CHANGE, applyLocale);
 
             	loadConfiguration();
             	
@@ -173,8 +174,10 @@
 				if(showFirstApplianceAutomatically) {
 					setMonitoredAppliance();
 		    	}
-            }
+            } // initApp
             
+            
+            // loadConfiguration
             private function loadConfiguration():void {
             	configurationFile = File.applicationDirectory.resolvePath("configuration.xml");
             	if(configurationFile.exists) {
@@ -207,16 +210,19 @@
             			NativeApplication.nativeApplication.exit();
             		});
             	}
-            }
+            } // loadConfiguration
             
+            // infoTimerHandler
             private function infoTimerHandler(event:TimerEvent):void {
             	infoHTTPService.send();
-            }
+            } //infoTimerHandler
             
+            // monitorTimerHandler
             private function monitorTimerHandler(event:TimerEvent):void {
 				monitorHTTPService.send();
-            }
+            } // monitorTimerHandler
             
+            // infoHandler
             private function infoHandler(event:ResultEvent):void {
                 var result:XML = event.result as XML;
                 var now:Date = new Date();
@@ -224,6 +230,7 @@
                 var durationInMinutes:int;
                 var difference:Number;
                 var minutesToNextCapture:int;
+                var hoursToNextCapture:int;
                 
                 if(result.current.schedule.parameters != undefined) {
                 	startTime = isoToDate(result.current.schedule.child("start-time"));
@@ -254,7 +261,7 @@
 	        	        var secondsToNextCapture:int = Math.round(difference/1000);
 	        	        minutesToNextCapture = Math.round(difference/minute);
 	                	if(secondsToNextCapture > 90) {
-							mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","next_capture_in_more_than_1_minute"), minutesToNextCapture.toString());
+							mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","next_capture_in_less_than_1_hour"), minutesToNextCapture.toString());
             	    	} else if(secondsToNextCapture > 60) {
 							mainInfo.text = resourceManager.getString("EchoMonitor","next_capture_in_about_1_minute");
             	    	} else if(secondsToNextCapture <= 60) {
@@ -262,7 +269,7 @@
             	    	} else if(secondsToNextCapture <= 0) {
             	    		mainInfo.text = resourceManager.getString("EchoMonitor","capture_is_starting");
             	    	}
-	                	secondaryInfo.text = "\"" + result.current.schedule.parameters.title + "\" / " + startTime.toLocaleDateString() + " / " + durationInMinutes + " minutes";
+	                	secondaryInfo.text = "\"" + result.current.schedule.parameters.title + "\" / " + startTime.toLocaleDateString() + " / " + durationInMinutes + " " + resourceManager.getString("EchoMonitor","minutes");
 	                }
                 } else if(result.next.parameters != undefined) {
                 	deactivateMonitoring();
@@ -270,33 +277,38 @@
 	                startTime = isoToDate(result.next.child("start-time"));
         	        difference = startTime.getTime()-now.getTime();
         	        minutesToNextCapture = Math.round(difference/minute);
+        	        hoursToNextCapture = Math.round(difference/hour);
 					var daysToNextCapture:int = Math.round(difference/day);
+					var a:int, b:int;
 					durationInMinutes = int(result.next.child("duration"))/60;
 
             	    if(difference/day < 1) {
-            	    	if(minutesToNextCapture > 1) {
-							mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","next_capture_in_more_than_1_minute"), minutesToNextCapture.toString());
+            	    	if(minutesToNextCapture >= 60) {
+            	    		a = Math.floor(minutesToNextCapture / 60);
+            	    		b = minutesToNextCapture - (a*60);
+            	    		mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","next_capture_in_more_than_1_hour"), a.toString(), b.toString());
+            	    	} else if(minutesToNextCapture > 1) {
+							mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","next_capture_in_less_than_1_hour"), minutesToNextCapture.toString());
             	    	} else if(minutesToNextCapture == 1) {
 							mainInfo.text = resourceManager.getString("EchoMonitor","next_capture_in_about_1_minute");
             	    	} else if(minutesToNextCapture < 1) {
             	    		mainInfo.text = resourceManager.getString("EchoMonitor","next_capture_in_less_than_1_minute");
             	    	}
 	                } else {
-	                	if(daysToNextCapture > 1) {
-	                		mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","next_capture_in_more_than_1_day"), daysToNextCapture.toString());
-	                	} else {
-	                		mainInfo.text = resourceManager.getString("EchoMonitor","next_capture_in_about_1_day");
-	                	}
+	                	a = Math.floor(hoursToNextCapture / 24);
+	                	b = hoursToNextCapture - (a * 24);
+						mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","next_capture_in_days"), a.toString(), b.toString());
         	        }
         	        
-        	        secondaryInfo.text = "\"" + result.next.parameters.title + "\" / " + startTime.toLocaleDateString() + " / " + durationInMinutes + " minutes";
+        	        secondaryInfo.text = "\"" + result.next.parameters.title + "\" / " + startTime.toLocaleDateString() + " / " + durationInMinutes + " " + resourceManager.getString("EchoMonitor","minutes");;
         	    } else {
         	    	infoTimer.delay = 10000;
         	    	mainInfo.text = resourceManager.getString("EchoMonitor", "no_next_capture");
         	    	secondaryInfo.text = "";
         	    }
-            }
+            } // infoHandler
             
+            // monitorHandler
             private function monitorHandler(event:ResultEvent):void {
             	var result:XML = event.result as XML;
             	if(result.state == "active" || result.child("confidence-monitoring") == "true" || result.current.child("confidence-monitoring") == "true") {
@@ -392,12 +404,14 @@
                 	displayLabel.setVisible(false);
                 	displayMonitor.setVisible(false);
                 }
-            }
+            } // monitorHandler
             
+            // httpFault
             private function httpFault(source:String, event:FaultEvent):void {
                 	debugMe("error", "httpFault: (" + source + ") " + event.fault.faultString);
-            }
+            } // httpFault
             
+            // getMonitorImage
 			private function getMonitorImage(type:String, address:String, toImage:Object):void {
 	            var request:URLRequest = new URLRequest(encodeURI(address));
 	            request.method = URLRequestMethod.POST;
@@ -418,19 +432,22 @@
 					toImage.setVisible(true);
 				});
 				_loader.load(request);
-			}
+			} // getMonitorImage
 			
-			private function applyFormats(e:Event):void {
+			// applyFormats
+			private function applyLocale(e:Event):void {
 //	            dateValue = dateFormatter.format(d);
-//	            timeValue = timeFormatter.format(d); 
-//	            currencyValue = currencyFormatter.format(1000);         
-	        }
+//	            timeValue = timeFormatter.format(d);
+//	            currencyValue = currencyFormatter.format(1000);
+	        } // applyFormats
 
+			// getTimestamp
             private function getTimestamp(date:Date):Number {
 				var unixTime:Number = Math.round(date.getTime()/1000);
 				return unixTime;
-			}
+			} // getTimestamp
             
+            // isoToDate
             private function isoToDate(value:String):Date {
                 var dateStr:String = value;
                 dateStr = dateStr.replace(/\-/g, "/");
@@ -438,15 +455,17 @@
                 dateStr = dateStr.replace("Z", " GMT-0000");
                 dateStr = dateStr.replace(".000", "");
                 return new Date(Date.parse(dateStr));
-            }
+            } // isoToDate
             
+            // getBase64UsernamePassword
             private function getBase64UsernamePassword():String {
             	var encoder:Base64Encoder = new Base64Encoder();
         		encoder.insertNewLines = false;
 				encoder.encode(username + ":" + password);
 				return encoder.toString();
-            }
+            } // getBase64UsernamePassword
             
+            // setMonitoredAppliance
             private function setMonitoredAppliance():void {
             	applianceURL = applianceChooser.selectedItem.address;
             	username = applianceChooser.selectedItem.username;
@@ -466,14 +485,16 @@
 	            monitorImageRequestHeader = new URLRequestHeader("Authorization","Basic " + base64UsernamePassword);
             	
             	debugMe("info", "Appliance selected: " + applianceChooser.selectedItem.name + " (" + applianceURL + ")");
-			}
+			} // setMonitoredAppliance
 			
+			// activateMonitoring
 			private function activateMonitoring():void {
 				if(!monitorTimer.running) {
 					monitorTimer.start();
 				}
-			}
+			} // activateMonitoring
 			
+			// deactivateMonitoring
 			private function deactivateMonitoring():void {
 				if(monitorTimer.running) {
 					monitorTimer.stop();
@@ -487,8 +508,9 @@
 				
 				monitorArea.filters = [okGlow];
 				audioErrorCount = 0;
-			}
+			} // deactivateMonitoring
 			
+			// changeView
 			private function changeView():void {
 				if(stage.displayState != StageDisplayState.NORMAL) {
 					stage.displayState = StageDisplayState.NORMAL;
@@ -497,27 +519,32 @@
 					stage.displayState = StageDisplayState.FULL_SCREEN_INTERACTIVE;
 					changeViewBtn.label = resourceManager.getString("EchoMonitor", "exit_fullscreen");
 				}
-			}
+			} // changeView
 			
+			// setLocale
 			private function setLocale(locale:String):void {
 				resourceManager.localeChain = [locale];
-			}
+			} // setLocale
 			
+			// debugMe
 			private function debugMe(type:String, debugString:String):void {
 				if(debug && debugString.length > 0) {
 					debugInfo.text += debugString + "\n ----- \n";
 				}
-			}
+			} // debugMe
 
+			// applicationActivate
 			private function applicationActivate(event:Event):void {
 			    stage.frameRate = 12;
-			}
+			} // applicationActivate
 
+			// applicationDeactivate
 			private function applicationDeactivate(event:Event):void {
 			    stage.frameRate = 1;
-			}
+			} // applicationDeactivate
 
-            private function reportKeyDown(e:KeyboardEvent):void {
+			// reportKeyDown
+			private function reportKeyDown(e:KeyboardEvent):void {
             	switch(e.keyCode) {
             		case Keyboard.CONTROL:
             			CONTROLKeyDown = true;
@@ -530,8 +557,9 @@
             			break;
             	}
             	checkKeys();
-            }
+            } // reportKeyDown
             
+            // reportKeyUp
             private function reportKeyUp(e:KeyboardEvent):void {
             	switch(e.keyCode) {
             		case Keyboard.CONTROL:
@@ -546,18 +574,19 @@
             		
             	}
 				checkKeys();
-            }
+            } // reportKeyUp
             
+            // checkKeys
             private function checkKeys():void {
-            	// Hides or shows the top control bar if CTRL+H are pressed on the keyboard
+            	// Hides or shows the top control bar if CTRL+H is pressed on the keyboard
             	if(CONTROLKeyDown && HKeyDown) {
             		monitorControlBar.visible = !monitorControlBar.visible;
-            	// Hides or shows the debugging area if CTRL+D are pressed on the keyboard	
+            	// Hides or shows the debugging area if CTRL+D is pressed on the keyboard	
             	} else if(CONTROLKeyDown && DKeyDown) {
             		debug = !debug;
             		debugInfo.visible = !debugInfo.visible;
             	}
-            }
+            } // checkKeys
         ]]>
     </mx:Script>
 	<mx:ApplicationControlBar dock="true" id="monitorControlBar">
@@ -569,7 +598,7 @@
     	<mx:Button click="changeView();" label="{resourceManager.getString('EchoMonitor', 'exit_fullscreen')}" id="changeViewBtn"/>
     	<mx:Button click="NativeApplication.nativeApplication.exit();" label="{resourceManager.getString('EchoMonitor', 'exit_application')}"/>
 	</mx:ApplicationControlBar>
-	<mx:VBox width="100%" height="85%" horizontalAlign="center">
+	<mx:VBox width="100%" height="85%" horizontalAlign="center" id="middleVBox">
 		<mx:Spacer height="2%"/>
 	    <mx:Label id="mainInfo" fontSize="30" color="#F0DCB9" width="90%" textAlign="center" paddingBottom="-12"/>
 	    <mx:Label id="secondaryInfo" fontSize="22" color="#F0DCB9" width="90%" textAlign="center"/>

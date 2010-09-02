@@ -2,8 +2,8 @@
 <configuration>
 	<appliances>
 		<appliance>
-			<name>My Appliance 1</name>
-			<address>https://192.168.0.1:8443</address>
+			<name>IT College 314</name>
+			<address>http://193.40.194.151:443</address>
 			<username>instructor</username>
 			<password>password</password>
 		</appliance>
