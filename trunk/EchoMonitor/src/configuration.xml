@@ -7,12 +7,22 @@
 			<username>instructor</username>
 			<password>password</password>
 		</appliance>
+		<appliance>
+			<name>IT College 316</name>
+			<address>http://193.40.194.152:443</address>
+			<username>instructor</username>
+			<password>password</password>
+		</appliance>
 	</appliances>
 	<audioErrorLevel>5000</audioErrorLevel>
 	<audioErrorLimit>20</audioErrorLimit>
 	<audioWarningLimit>10</audioWarningLimit>
 	<debug>false</debug>
 	<defaultLocale>en_US</defaultLocale>
+	<infoTimerActive>3000</infoTimerActive>
+	<infoTimerIdle>10000</infoTimerIdle>
+	<monitorTimerActive>3000</monitorTimerActive>
+	<monitorTimerIdle>10000</monitorTimerIdle>
 	<showFirstApplianceAutomatically>true</showFirstApplianceAutomatically>
 	<showRoomSelection>true</showRoomSelection>
 	<startFullscreen>true</startFullscreen>

@@ -16,6 +16,8 @@
    limitations under the License.
    
    TODO:
+    - handle monitoring from different timezone than the appliance with correct dates and times
+    - handle different capture modes (audio-display-video, audio-display, audio) correctly without monitoring the input not being used in the capture
     - clear audio error message when a capture ends
 
 -->
@@ -85,7 +87,9 @@
 <mx:DateFormatter id="dateFormatter" 
 	formatString="{resourceManager.getString('EchoMonitor', 'DATE_FORMAT')}" />
 <mx:DateFormatter id="timeFormatter"
-	formatString="{resourceManager.getString('EchoMonitor', 'TIME_FORMAT')}" />   
+	formatString="{resourceManager.getString('EchoMonitor', 'TIME_FORMAT')}" />
+<mx:DateFormatter id="timeWithSecondsFormatter"
+	formatString="{resourceManager.getString('EchoMonitor', 'TIME_WITH_SECONDS_FORMAT')}" /> 
 <mx:Metadata>
   [ResourceBundle("EchoMonitor")]
 </mx:Metadata>
@@ -116,11 +120,15 @@
             private var monitorDisplayImageLoader:Loader;
             private var monitorImageRequestHeader:URLRequestHeader;
 
-			private var audioErrorLevel:Number = 5000;
+			private var audioErrorLevel:int = 5000;
 			private var audioErrorLimit:int = 20;
 			private var audioWarningLimit:int = 10;
             private var debug:Boolean = false;
             private var defaultLocale:String = "en_US";
+            private var infoTimerActive:int = 3000;
+            private var infoTimerIdle:int = 10000;
+            private var monitorTimerActive:int = 3000;
+            private var monitorTimerIdle:int = 10000;
             private var showFirstApplianceAutomatically:Boolean = false;
             private var showRoomSelection:Boolean = true;
             private var startFullscreen:Boolean = true;
@@ -165,10 +173,10 @@
 				this.addEventListener(AIREvent.APPLICATION_ACTIVATE, applicationActivate);
 				this.addEventListener(AIREvent.APPLICATION_DEACTIVATE, applicationDeactivate);
 
-				infoTimer = new Timer(10000, 0);
+				infoTimer = new Timer(infoTimerIdle, 0);
 		        infoTimer.addEventListener("timer", infoTimerHandler);
 
-            	monitorTimer = new Timer(10000, 0);
+            	monitorTimer = new Timer(monitorTimerIdle, 0);
 	            monitorTimer.addEventListener("timer", monitorTimerHandler);
 
 				monitorVideoImageLoader = new Loader();
@@ -198,11 +206,15 @@
 					}
 					
 					
-					audioErrorLevel = Number(configurationXML.audioErrorLevel);
+					audioErrorLevel = int(configurationXML.audioErrorLevel);
 					audioErrorLimit = int(configurationXML.audioErrorLimit);
 					audioWarningLimit = int(configurationXML.audioWarningLimit);
 					debug = configurationXML.debug.toLowerCase() == "true";
 					defaultLocale = String(configurationXML.defaultLocale);
+					infoTimerActive = int(configurationXML.infoTimerActive);
+					infoTimerIdle = int(configurationXML.infoTimerIdle);
+					monitorTimerActive = int(configurationXML.monitorTimerActive);
+					monitorTimerIdle = int(configurationXML.monitorTimerIdle);
 					showFirstApplianceAutomatically = configurationXML.showFirstApplianceAutomatically.toLowerCase() == "true";
 					showRoomSelection = configurationXML.showRoomSelection.toLowerCase() == "true";
 					startFullscreen = configurationXML.startFullscreen.toLowerCase() == "true";
@@ -246,10 +258,10 @@
 	                	activateMonitoring();
 	                	if(secondsToCaptureEnd >= 59)
 	                	{
-	                		infoTimer.delay = 10000;
+	                		infoTimer.delay = infoTimerIdle;
 		                	mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","active_capture_for_more_than_1_minute"), Math.round(secondsToCaptureEnd/60).toString());
 		                } else if(secondsToCaptureEnd > 0) {
-		                	infoTimer.delay = 3000;
+		                	infoTimer.delay = infoTimerActive;
 		                	mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","active_capture_ending_in_less_than_1_minute"), secondsToCaptureEnd.toString());
 		                } else if(secondsToCaptureEnd <= 0) {
 		                	mainInfo.text = resourceManager.getString("EchoMonitor","capture_is_stopping");
@@ -260,7 +272,7 @@
 	                	mainInfo.text = resourceManager.getString("EchoMonitor","active_capture_has_been_paused");
 	                	secondaryInfo.text = "\"" + result.current.schedule.parameters.title + "\"";
 	                } else if(result.current.schedule.parameters != undefined && result.current.state == "waiting") {
-	                	infoTimer.delay = 3000;
+	                	infoTimer.delay = infoTimerActive;
 	                	difference = startTime.getTime()-now.getTime();
 	        	        var secondsToNextCapture:int = Math.round(difference/1000);
 	        	        minutesToNextCapture = Math.round(difference/minute);
@@ -277,7 +289,7 @@
 	                }
                 } else if(result.next.parameters != undefined) {
                 	deactivateMonitoring();
-                	infoTimer.delay = 10000;
+                	infoTimer.delay = infoTimerIdle;
 	                startTime = isoToDate(result.next.child("start-time"));
         	        difference = startTime.getTime()-now.getTime();
         	        minutesToNextCapture = Math.round(difference/minute);
@@ -306,7 +318,7 @@
         	        
         	        secondaryInfo.text = "\"" + result.next.parameters.title + "\"\n" + dateFormatter.format(startTime) + " @ " + timeFormatter.format(startTime) + " / " + durationInMinutes + " " + resourceManager.getString("EchoMonitor","minutes");;
         	    } else {
-        	    	infoTimer.delay = 10000;
+        	    	infoTimer.delay = infoTimerIdle;
         	    	mainInfo.text = resourceManager.getString("EchoMonitor", "no_next_capture");
         	    	secondaryInfo.text = "";
         	    }
@@ -316,8 +328,8 @@
             private function monitorHandler(event:ResultEvent):void {
             	var result:XML = event.result as XML;
             	if(result.state == "active" || result.child("confidence-monitoring") == "true" || result.current.child("confidence-monitoring") == "true") {
-            		if(monitorTimer.delay != 3000) {
-            			monitorTimer.delay = 3000;
+            		if(monitorTimer.delay != monitorTimerActive) {
+            			monitorTimer.delay = monitorTimerActive;
             		}
             		
             		if(!monitorArea.visible) {
@@ -350,36 +362,35 @@
                 	}
                 	
                 	var videoResult:XMLList = result.sources.source.(child("class").toString().search("video")>-1);
-                	if(videoResult.child("signal-present") == "false") { // Video signal missing
+                	if(videoResult.child("signal-present") == "true") { // Video signal present
+                		if(checkVideo.visible) {
+                			checkVideo.setVisible(false);
+                		}
+	                	videoLabel.setVisible(true);
+	                	getMonitorImage("video", applianceURL + "/monitoring/video_pal_4.jpg?" + randString, videoMonitor);
+                	} else { // Video signal missing
                 		error = true;
                 		videoLabel.setVisible(false);
                 		videoMonitor.setVisible(false);
                 		if(!checkVideo.visible) {
                 			checkVideo.setVisible(true);
                 		}
-                	} else { // Video signal present
-                		if(checkVideo.visible) {
-                			checkVideo.setVisible(false);
-                		}
-	                	videoLabel.setVisible(true);
-	                	getMonitorImage("video", applianceURL + "/monitoring/video_pal_4.jpg?" + randString, videoMonitor);
                 	}
                 	
                 	var displayResult:XMLList = result.sources.source.(child("class").toString().search("vga")>-1);
-                	if(displayResult.child("signal-present") == "false") { // Display signal missing
-                		error = true;
+                	if(displayResult.child("signal-present") == "true") { // Display signal present
+                		if(checkDisplay.visible) {
+                			checkDisplay.setVisible(false);
+                		}
+	                	displayLabel.setVisible(true);
+	                	getMonitorImage("display", applianceURL + "/monitoring/vga_display_1.jpg?" + randString, displayMonitor);
+	                } else { // Display signal missing
+	                	error = true;
 	                	displayLabel.setVisible(false);
 	                	displayMonitor.setVisible(false);
 	                	if(!checkDisplay.visible) {
 	                		checkDisplay.setVisible(true);
 	                	}
-	                	
-	                } else { // Display signal present
-	                	if(checkDisplay.visible) {
-                			checkDisplay.setVisible(false);
-                		}
-	                	displayLabel.setVisible(true);
-	                	getMonitorImage("display", applianceURL + "/monitoring/vga_display_1.jpg?" + randString, displayMonitor);
 	                }
 	                
 					if(!warning && !error) {
@@ -395,8 +406,8 @@
 						monitorArea.filters = [warningGlow];
 					}
                 } else {
-                	if(monitorTimer.delay != 10000) {
-                		monitorTimer.delay = 10000;
+                	if(monitorTimer.delay != monitorTimerIdle) {
+                		monitorTimer.delay = monitorTimerIdle;
                 	}
                 	
                 	if(monitorArea.visible) {
@@ -533,7 +544,8 @@
 			// debugMe
 			private function debugMe(type:String, debugString:String):void {
 				if(debug && debugString.length > 0) {
-					debugInfo.text += debugString + "\n ----- \n";
+					var now:Date = new Date();
+					debugInfo.text += dateFormatter.format(now) + " " + timeWithSecondsFormatter.format(now) + ":\n" + debugString + "\n ----- \n";
 				}
 			} // debugMe
 
