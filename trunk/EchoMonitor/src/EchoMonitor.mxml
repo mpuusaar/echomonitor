@@ -17,7 +17,6 @@
    
    TODO:
     - handle monitoring from different timezone than the appliance with correct dates and times
-    - handle different capture modes (audio-display-video, audio-display, audio) correctly without monitoring the input not being used in the capture
     - clear audio error message when a capture ends
 
 -->
@@ -280,7 +279,7 @@
 							mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","next_capture_in_less_than_1_hour"), minutesToNextCapture.toString());
             	    	} else if(secondsToNextCapture > 60) {
 							mainInfo.text = resourceManager.getString("EchoMonitor","next_capture_in_about_1_minute");
-            	    	} else if(secondsToNextCapture <= 60) {
+            	    	} else if(secondsToNextCapture > 0) {
             	    		mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","next_capture_in_seconds"), secondsToNextCapture.toString());
             	    	} else if(secondsToNextCapture <= 0) {
             	    		mainInfo.text = resourceManager.getString("EchoMonitor","capture_is_starting");
@@ -327,10 +326,12 @@
             // monitorHandler
             private function monitorHandler(event:ResultEvent):void {
             	var result:XML = event.result as XML;
-            	if(result.state == "active" || result.child("confidence-monitoring") == "true" || result.current.child("confidence-monitoring") == "true") {
+            	if(result.current.state == "active" || result.current.child("confidence-monitoring") == "true" ) {
             		if(monitorTimer.delay != monitorTimerActive) {
             			monitorTimer.delay = monitorTimerActive;
             		}
+
+            		var capturedSources:String = String(result.current.schedule.parameters.child("name-key"));
             		
             		if(!monitorArea.visible) {
 	            		monitorArea.setVisible(true);
@@ -340,7 +341,7 @@
             		var error:Boolean = false;
                 	var randString:String = new Date().getTime().toString();
                 	
-                	var audioResult:XMLList = result.sources.source.(child("class").toString().search("audio")>-1);
+                	var audioResult:XMLList = result.current.sources.source.(child("class").toString().search("audio")>-1);
 
                 	if(audioResult.child("signal-present") == "false" || audioResult.channels.channel[1].peak <= audioErrorLevel) { // Audio signal missing
                 		audioErrorCount++;
@@ -361,37 +362,49 @@
                 		}
                 	}
                 	
-                	var videoResult:XMLList = result.sources.source.(child("class").toString().search("video")>-1);
-                	if(videoResult.child("signal-present") == "true") { // Video signal present
-                		if(checkVideo.visible) {
-                			checkVideo.setVisible(false);
-                		}
-	                	videoLabel.setVisible(true);
-	                	getMonitorImage("video", applianceURL + "/monitoring/video_pal_4.jpg?" + randString, videoMonitor);
-                	} else { // Video signal missing
-                		error = true;
-                		videoLabel.setVisible(false);
-                		videoMonitor.setVisible(false);
-                		if(!checkVideo.visible) {
-                			checkVideo.setVisible(true);
-                		}
-                	}
-                	
-                	var displayResult:XMLList = result.sources.source.(child("class").toString().search("vga")>-1);
-                	if(displayResult.child("signal-present") == "true") { // Display signal present
-                		if(checkDisplay.visible) {
-                			checkDisplay.setVisible(false);
-                		}
-	                	displayLabel.setVisible(true);
-	                	getMonitorImage("display", applianceURL + "/monitoring/vga_display_1.jpg?" + randString, displayMonitor);
-	                } else { // Display signal missing
-	                	error = true;
-	                	displayLabel.setVisible(false);
-	                	displayMonitor.setVisible(false);
-	                	if(!checkDisplay.visible) {
-	                		checkDisplay.setVisible(true);
+                	if(capturedSources.search("video") >= 0) {
+	                	var videoResult:XMLList = result.current.sources.source.(child("class").toString().search("video")>-1);
+	                	if(videoResult.child("signal-present") == "true") { // Video signal present
+	                		if(checkVideo.visible) {
+	                			checkVideo.setVisible(false);
+	                		}
+		                	videoLabel.setVisible(true);
+		                	getMonitorImage("video", applianceURL + "/monitoring/video_pal_4.jpg?" + randString, videoMonitor);
+	                	} else { // Video signal missing
+	                		error = true;
+	                		videoLabel.setVisible(false);
+	                		videoMonitor.setVisible(false);
+	                		if(!checkVideo.visible) {
+	                			checkVideo.setVisible(true);
+	                		}
 	                	}
+	                } else {
+	                	videoLabel.setVisible(false);
+	                	videoMonitor.setVisible(false);
+	                	checkVideo.setVisible(false);
 	                }
+                	
+                	if(capturedSources.search("display") >= 0) {
+	                	var displayResult:XMLList = result.current.sources.source.(child("class").toString().search("vga")>-1);
+	                	if(displayResult.child("signal-present") == "true") { // Display signal present
+	                		if(checkDisplay.visible) {
+	                			checkDisplay.setVisible(false);
+	                		}
+		                	displayLabel.setVisible(true);
+		                	getMonitorImage("display", applianceURL + "/monitoring/vga_display_1.jpg?" + randString, displayMonitor);
+		                } else { // Display signal missing
+		                	error = true;
+		                	displayLabel.setVisible(false);
+		                	displayMonitor.setVisible(false);
+		                	if(!checkDisplay.visible) {
+		                		checkDisplay.setVisible(true);
+		                	}
+		                }
+                	} else {
+                		displayLabel.setVisible(false);
+                		displayMonitor.setVisible(false);
+                		checkDisplay.setVisible(false);
+                	}
 	                
 					if(!warning && !error) {
 						if(doGlow.isPlaying) {
@@ -494,7 +507,7 @@
             		infoTimer.start();
             	}
             	
-            	monitorHTTPService.url = applianceURL + "/status/monitoring";
+            	monitorHTTPService.url = applianceURL + "/status/captures";
             	monitorHTTPService.headers = {Authorization:"Basic " + base64UsernamePassword};
 
 	            monitorImageRequestHeader = new URLRequestHeader("Authorization","Basic " + base64UsernamePassword);
