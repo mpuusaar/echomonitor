@@ -10,4 +10,4 @@ EchoMonitor can be translated/localized into any given language really easily by
  # Get the current localization file from SVN: http://echomonitor.googlecode.com/svn/trunk/EchoMonitor/src/locale/en_US/EchoMonitor.properties
  # Save the localization file to your computer and edit it according to your locale
  # Send the file to marko.puusaar@gmail.com. Marko Puusaar will send you back a compiled version of EchoMonitor with your translation so you could test that the translation is correct
- # Confirm to Marko Puusaar that the translation is working properly and it will be included to the next release of EchoMonitor
+ # After you confirm that the translation is working, it will be included in the next release of EchoMonitor
