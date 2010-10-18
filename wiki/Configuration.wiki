@@ -51,7 +51,7 @@ _<password>password</username>_ - make sure that the password in here is the sam
 
 This section will describe all the advanced configuration options available for EchoMonitor.
 
-_<audioErrorLevel>5000</audioErrorLevel>_ - 
+'<audioErrorLevel>5000</audioErrorLevel>' - 
 _<audioErrorLimit>20</audioErrorLimit>_ - 
 _<audioWarningLimit>10</audioWarningLimit>_ - 
 _<debug>false</debug>_ - 
