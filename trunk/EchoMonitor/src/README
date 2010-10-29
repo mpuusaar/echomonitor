@@ -1,7 +1,7 @@
 **********************
 README for EchoMonitor
 **********************
-Last updated: 15th July 2010
+Last updated: 29th October 2010
 
 http://code.google.com/p/echomonitor/
 
@@ -25,7 +25,12 @@ Installation:
 ****************
 2) CONFIGURATION
 ****************
-Before running EchoMonitor for the first time you will need to add information about your Echo360 capture appliance(s) into the configuration file configuration.xml. You can find the configuration file from the same directory where you installed EchoMonitor itself (Windows - C:\Program Files\EchoMonitor\; Mac OS X - /Applications/EchoMonitor/). The configuration file is in XML format and you can edit it with Notepad (Windows) or TextEdit? (Mac OS X) or with your favorite text-editor. 
+The most up-to-date documentation about configuring EchoMonitor is available on the project page:
+http://code.google.com/p/echomonitor/wiki/Configuration
+
+Before running EchoMonitor for the first time you will need to add information about your Echo360 capture appliance(s) into the configuration file configuration.xml.
+
+You can find the configuration file from the same directory where you installed EchoMonitor itself (Windows - C:\Program Files\EchoMonitor\; Mac OS X - /Applications/EchoMonitor/). The configuration file is in XML format and you can edit it with Notepad (Windows) or TextEdit (Mac OS X) or with your favorite text-editor.
 
 Normally a new configuration file looks like this: 
 <?xml version="1.0" encoding="utf-8"?>
@@ -43,16 +48,27 @@ Normally a new configuration file looks like this:
         <audioWarningLimit>10</audioWarningLimit>
         <debug>false</debug>
         <defaultLocale>en_US</defaultLocale>
+        <infoTimerActive>3000</infoTimerActive>
+        <infoTimerIdle>10000</infoTimerIdle>
         <showFirstApplianceAutomatically>true</showFirstApplianceAutomatically>
         <showRoomSelection>true</showRoomSelection>
         <startFullscreen>true</startFullscreen>
 </configuration>
 
+Just add your appliances information to the <appliances>...</appliances> section, save the file and you are done.
 
 
 ************
 3) CHANGELOG
 ************
+Version 0.9.8
+- the number and frequency of connections made to the appliances has been optimized to avoid overloading the appliances API mechanism
+- the frequency of requests to the appliances is now simply configurable through the configuration.xml file
+- disabled scrollbars on the monitoring area to handle small screens and resolutions without annoying scrollbars
+
+Version 0.9.7
+- minor improvements to the way how EchoMonitor handles the information that it gets from the appliances
+
 Version 0.9.6
 - improved configuration file handling: display error message when the configuration file is missing and when there are no appliances defined in the configuration
 
