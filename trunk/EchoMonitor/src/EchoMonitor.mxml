@@ -14,10 +14,15 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-   
+
+
    TODO:
     - handle monitoring from different timezone than the appliance with correct dates and times
-    - clear audio error message when a capture ends
+    - [DONE] clear audio error message when a capture ends
+    - notify the user of any network/connection problems that cause EchoMonitor not to be able to connect to the selected appliance
+    - [DONE] optimize connections to the capture appliance 
+    - handle locale change with more grace :)
+    - [DONE] improve the display of monitoring area (hide scrollbars)
 
 -->
 <mx:WindowedApplication
@@ -25,8 +30,8 @@
 	layout="vertical"
 	horizontalAlign="center"
 	verticalAlign="middle"
-	width="800"
-	height="600"
+	width="900"
+	height="650"
 	applicationComplete="initApp(event);"
 	backgroundGradientAlphas="[1.0, 1.0]"
 	backgroundGradientColors="[#105761, #090D0B]"
@@ -36,14 +41,16 @@
 	id="infoHTTPService"
 	resultFormat="e4x" 
 	result="infoHandler(event)"
-	fault="httpFault('monitorHTTPService',event)"
+	fault="httpFault('infoHTTPService',event)"
 	requestTimeout="3" />
+<!--
 <mx:HTTPService
 	id="monitorHTTPService"
 	resultFormat="e4x" 
 	result="monitorHandler(event)"
 	fault="httpFault('monitorHTTPService',event)"
 	requestTimeout="3" />
+-->
 <mx:Zoom
 	id="zoomIn"
 	zoomHeightFrom="0.0"
@@ -118,6 +125,7 @@
             private var monitorVideoImageLoader:Loader;
             private var monitorDisplayImageLoader:Loader;
             private var monitorImageRequestHeader:URLRequestHeader;
+            private var controlBarInfoErrorColor:String = "#C80101";
 
 			private var audioErrorLevel:int = 5000;
 			private var audioErrorLimit:int = 20;
@@ -126,8 +134,8 @@
             private var defaultLocale:String = "en_US";
             private var infoTimerActive:int = 3000;
             private var infoTimerIdle:int = 10000;
-            private var monitorTimerActive:int = 3000;
-            private var monitorTimerIdle:int = 10000;
+            // private var monitorTimerActive:int = 3000;
+            // private var monitorTimerIdle:int = 10000;
             private var showFirstApplianceAutomatically:Boolean = false;
             private var showRoomSelection:Boolean = true;
             private var startFullscreen:Boolean = true;
@@ -175,8 +183,10 @@
 				infoTimer = new Timer(infoTimerIdle, 0);
 		        infoTimer.addEventListener("timer", infoTimerHandler);
 
+				/*
             	monitorTimer = new Timer(monitorTimerIdle, 0);
 	            monitorTimer.addEventListener("timer", monitorTimerHandler);
+	            */
 
 				monitorVideoImageLoader = new Loader();
 				monitorDisplayImageLoader = new Loader();
@@ -212,8 +222,8 @@
 					defaultLocale = String(configurationXML.defaultLocale);
 					infoTimerActive = int(configurationXML.infoTimerActive);
 					infoTimerIdle = int(configurationXML.infoTimerIdle);
-					monitorTimerActive = int(configurationXML.monitorTimerActive);
-					monitorTimerIdle = int(configurationXML.monitorTimerIdle);
+					// monitorTimerActive = int(configurationXML.monitorTimerActive);
+					// monitorTimerIdle = int(configurationXML.monitorTimerIdle);
 					showFirstApplianceAutomatically = configurationXML.showFirstApplianceAutomatically.toLowerCase() == "true";
 					showRoomSelection = configurationXML.showRoomSelection.toLowerCase() == "true";
 					startFullscreen = configurationXML.startFullscreen.toLowerCase() == "true";
@@ -232,9 +242,11 @@
             } //infoTimerHandler
             
             // monitorTimerHandler
+            /*
             private function monitorTimerHandler(event:TimerEvent):void {
 				monitorHTTPService.send();
             } // monitorTimerHandler
+            */
             
             // infoHandler
             private function infoHandler(event:ResultEvent):void {
@@ -246,21 +258,25 @@
                 var minutesToNextCapture:int;
                 var hoursToNextCapture:int;
                 
+				debugMe("info","Result XML from infoHandler:\n" + result);
+                
                 if(result.current.schedule.parameters != undefined) {
                 	startTime = isoToDate(result.current.schedule.child("start-time"));
                 	durationInMinutes = int(result.current.duration)/60;
 	               	var captureEnd:Number = startTime.getTime()+(result.current.duration*1000);
 	                var secondsToCaptureEnd:Number = Math.round((captureEnd-now.getTime())/1000);
-	                debugMe("info",result.current);
 	                	
                 	if(result.current.state == "active") {
-	                	activateMonitoring();
+                		infoTimer.delay = infoTimerActive;
+                		
+	                	activateMonitoring(event);
+	                	
 	                	if(secondsToCaptureEnd >= 59)
 	                	{
-	                		infoTimer.delay = infoTimerIdle;
+	                		// infoTimer.delay = infoTimerIdle;
 		                	mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","active_capture_for_more_than_1_minute"), Math.round(secondsToCaptureEnd/60).toString());
 		                } else if(secondsToCaptureEnd > 0) {
-		                	infoTimer.delay = infoTimerActive;
+		                	// infoTimer.delay = infoTimerActive;
 		                	mainInfo.text = StringUtil.substitute(resourceManager.getString("EchoMonitor","active_capture_ending_in_less_than_1_minute"), secondsToCaptureEnd.toString());
 		                } else if(secondsToCaptureEnd <= 0) {
 		                	mainInfo.text = resourceManager.getString("EchoMonitor","capture_is_stopping");
@@ -326,10 +342,15 @@
             // monitorHandler
             private function monitorHandler(event:ResultEvent):void {
             	var result:XML = event.result as XML;
+            	
+            	// debugMe("info","Result XML from monitorHandler:\n" + result);
+            	
             	if(result.current.state == "active" || result.current.child("confidence-monitoring") == "true" ) {
+            		/*
             		if(monitorTimer.delay != monitorTimerActive) {
             			monitorTimer.delay = monitorTimerActive;
             		}
+            		*/
 
             		var capturedSources:String = String(result.current.schedule.parameters.child("name-key"));
             		
@@ -419,9 +440,11 @@
 						monitorArea.filters = [warningGlow];
 					}
                 } else {
+                	/*
                 	if(monitorTimer.delay != monitorTimerIdle) {
                 		monitorTimer.delay = monitorTimerIdle;
                 	}
+                	*/
                 	
                 	if(monitorArea.visible) {
                 		monitorArea.setVisible(false);
@@ -436,7 +459,7 @@
             
             // httpFault
             private function httpFault(source:String, event:FaultEvent):void {
-                	debugMe("error", "httpFault: (" + source + ") " + event.fault.faultString);
+                	debugMe("error", "httpFault: (" + source + ") " + event.fault.faultString + "[" + event.fault.faultCode + "]");
             } // httpFault
             
             // getMonitorImage
@@ -507,8 +530,10 @@
             		infoTimer.start();
             	}
             	
+            	/*
             	monitorHTTPService.url = applianceURL + "/status/captures";
             	monitorHTTPService.headers = {Authorization:"Basic " + base64UsernamePassword};
+            	*/
 
 	            monitorImageRequestHeader = new URLRequestHeader("Authorization","Basic " + base64UsernamePassword);
             	
@@ -516,17 +541,23 @@
 			} // setMonitoredAppliance
 			
 			// activateMonitoring
-			private function activateMonitoring():void {
+			private function activateMonitoring(event:ResultEvent):void {
+				/*
 				if(!monitorTimer.running) {
 					monitorTimer.start();
 				}
+				*/
+				
+				monitorHandler(event);
 			} // activateMonitoring
 			
 			// deactivateMonitoring
 			private function deactivateMonitoring():void {
+				/*
 				if(monitorTimer.running) {
 					monitorTimer.stop();
 				}
+				*/
 				if(monitorArea.visible) {
 					monitorArea.setVisible(false);
 				}
@@ -622,6 +653,8 @@
 		<mx:Image source="@Embed(source='assets/en_US.svg')" click="setLocale('en_US')" width="20" height="12"/>
 		<mx:Image source="@Embed(source='assets/et_EE.svg')" click="setLocale('et_EE')" width="20" height="12"/>
 		<mx:Spacer width="100%"/>
+		<mx:Label width="100%" textAlign="center" id="controlBarInfo"/>
+		<mx:Spacer width="100%"/>
     	<mx:Label text="{resourceManager.getString('EchoMonitor', 'select_room')}" id="chooseApplianceLbl" visible="false"/>
     	<mx:ComboBox editable="false" id="applianceChooser" dataProvider="{appliances}" labelField="name" change="setMonitoredAppliance();" visible="false"></mx:ComboBox>
     	<mx:Button click="changeView();" label="{resourceManager.getString('EchoMonitor', 'exit_fullscreen')}" id="changeViewBtn"/>
@@ -632,7 +665,7 @@
 	    <mx:Text id="mainInfo" fontSize="30" color="#F0DCB9" width="90%" textAlign="center" paddingBottom="-10"/>
 	    <mx:Text id="secondaryInfo" fontSize="22" color="#F0DCB9" width="90%" textAlign="center"/>
 	    <mx:Spacer height="2%"/>
-		<mx:Canvas width="90%" id="monitorArea" visible="false" height="70%" backgroundColor="#090D0B" cornerRadius="10" borderColor="#090D0B" borderStyle="solid" showEffect="zoomIn" hideEffect="zoomOut">
+		<mx:Canvas width="90%" id="monitorArea" visible="false" height="70%" backgroundColor="#090D0B" cornerRadius="10" borderColor="#090D0B" borderStyle="solid" showEffect="zoomIn" hideEffect="zoomOut" horizontalScrollPolicy="off" verticalScrollPolicy="off">
 		    <mx:Image width="320" height="240" id="videoMonitor" visible="false" horizontalCenter="-185" verticalCenter="20"/>
 		    <mx:Image width="320" height="240" id="displayMonitor" visible="false" horizontalCenter="185" verticalCenter="20"/>
 		    <mx:Label text="{resourceManager.getString('EchoMonitor', 'video')}" fontSize="20" textAlign="center" id="videoLabel" visible="false" width="320" color="#F0DCB9" horizontalCenter="-185" verticalCenter="120"/>

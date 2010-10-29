@@ -24,14 +24,28 @@
 	<name>EchoMonitor</name>
 
 	<!-- An application version designator (such as "v1", "2.5", or "Alpha 1"). Required. -->
-	<version>0.9.7</version>
+	<version>0.9.8</version>
 
 	<!-- Description, displayed in the AIR application installer.
 	     May have multiple values for each language. See samples or xsd schema file. Optional. -->
-	<!-- <description></description> -->
+	<description>EchoMonitor is a stand-alone Adobe AIR application for monitoring Echo360 lecture capture appliances</description>
 
 	<!-- Copyright information. Optional -->
-	<!-- <copyright></copyright> -->
+	<copyright>
+Copyright 2010 Marko Puusaar / Estonian Information Technology College
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+	</copyright> -->
 
 	<!-- Settings for the application's initial window. Required. -->
 	<initialWindow>
@@ -40,7 +54,7 @@
 		<content>[This value will be overwritten by Flex Builder in the output app.xml]</content>
 		
 		<!-- The title of the main window. Optional. -->
-		<!-- <title></title> -->
+		<title>EchoMonitor</title>
 
 		<!-- The type of system chrome to use (either "standard" or "none"). Optional. Default standard. -->
 		<!-- <systemChrome></systemChrome> -->
