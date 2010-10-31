@@ -7,6 +7,10 @@ EchoMonitor can be configured through a simple XML file _configuration.xml_ that
 
 This document has vital information about the first-time configuration of EchoMonitor and for more advanced configuration.
 
+== Requirements ==
+
+ # Write access to the EchoMonitor configuration file.
+ # Administrator rights on the Echo System Server (ESS) to reconfigure capture appliances.
 
 == First-time configuration ==
 
