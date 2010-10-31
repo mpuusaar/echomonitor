@@ -10,11 +10,15 @@ This document has vital information about the first-time configuration of EchoMo
 == Requirements ==
 
  # Write access to the EchoMonitor configuration file.
- # Administrator rights on the Echo System Server (ESS) to reconfigure capture appliances.
+ # Administrator rights on the EchoSystem Server (ESS) to reconfigure capture appliances.
 
 == First-time configuration ==
 
-Before running EchoMonitor for the first time you will need to add information about your Echo360 capture appliance(s) into the configuration file _configuration.xml_.
+Before running EchoMonitor for the first time you will need to:
+ # add information about your Echo360 capture appliance(s) into the configuration file _configuration.xml_.
+ # reconfigure the capture appliances to accept connections without encryption (http connections instead of https connections).
+
+=== Adding your appliances information to the configuration ===
 
 You can find the configuration file from the same directory where you installed EchoMonitor itself (Windows - C:\Program Files\EchoMonitor\; Mac OS X - /Applications/EchoMonitor/).
 
@@ -43,13 +47,17 @@ Normally a new configuration file looks like this:
 </configuration>
 }}}
 
-=== Adding your appliances information to the configuration ===
-
 You will need to edit the section between _<appliances>_ and _</appliances>_ to add your own appliances information to the configuration:
 ||<name>My Appliance 1</name>|| change the text _My Appliance 1_ to describe the name of your own appliance. ||
 ||<address>https://192.168.0.1:8443</address>|| the address in here has to be the same web address that you would use to access this appliances ad-hoc interface in the browser. ||
 ||<username>instructor</username>|| make sure that the username in here is the same that is assigned to the rooms _Generic User Name_ in the EchoSystem Server. ||
 ||<password>password</password>|| make sure that the password in here is the same that is assigned to the rooms _Generic Password_ in the EchoSystem Server. ||
+
+=== Reconfiguring capture appliances ===
+
+Because the default https certificate on the Echo360 capture appliances is not accepted by most of the browsers and other software as legitimate you will need to allow EchoMonitor to connect to the capture appliances without using the encrypted connections.
+
+...
 
 == Advanced configuration ==
 
