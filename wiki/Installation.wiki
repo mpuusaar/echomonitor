@@ -5,10 +5,10 @@
 
  * *Installation file of EchoMonitor*. You can download the latest version of EchoMonitor from http://code.google.com/p/echomonitor/downloads/list.
  * *Adobe AIR installed on your computer*. You can get the latest version of Adobe AIR from http://get.adobe.com/air/. If you have Adobe Reader on your computer then you probably already have Adobe AIR also.
- * *Administrator level access to EchoSystem Server*. This may be needed to reconfigure your Echo360 capture appliances.
+ * *Administrator level access to EchoSystem Server*. This may be needed to reconfigure your Echo360 capture appliances to accept connections without encryption (http).
 
 == Installation ==
 
  # Run the downloaded EchoMonitor installation file (_EchoMonitor_x.x.x.air_) from your computer as an Administrator (or as an user with administrator privileges).
- # Confirm the security exception for EchoMonitor (EchoMonitor application has been self-signed an thus the security certificate is not recognized by your computer).
- # Wait for the installation to finish. Don't run EchoMonitor jet - you will need to configure it first. See the [Configuration] page for first-time configuration guidelines.
+ # Confirm the security exception for EchoMonitor (EchoMonitor application has been self-signed and thus the security certificate is not recognized by your computer).
+ # Wait for the installation to finish. *Don't run EchoMonitor yet - you will need to configure it first*. See the [Configuration] page for first-time configuration guidelines.
