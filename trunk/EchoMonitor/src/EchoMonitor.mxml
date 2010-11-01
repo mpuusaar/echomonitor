@@ -23,6 +23,7 @@
     - [DONE] optimize connections to the capture appliance 
     - handle locale change with more grace :)
     - [DONE] improve the display of monitoring area (hide scrollbars)
+    - implement audio level showing
 
 -->
 <mx:WindowedApplication
@@ -126,6 +127,7 @@
             private var monitorDisplayImageLoader:Loader;
             private var monitorImageRequestHeader:URLRequestHeader;
             private var controlBarInfoErrorColor:String = "#C80101";
+            private var configurationFileName:String = "configuration.xml";
 
 			private var audioErrorLevel:int = 5000;
 			private var audioErrorLimit:int = 20;
@@ -199,7 +201,7 @@
             
             // loadConfiguration
             private function loadConfiguration():void {
-            	configurationFile = File.applicationDirectory.resolvePath("configuration.xml");
+            	configurationFile = File.applicationDirectory.resolvePath(configurationFileName);
             	if(configurationFile.exists) {
 					configurationFileStream = new FileStream();
 				    configurationFileStream.open(configurationFile, FileMode.READ);
@@ -269,7 +271,7 @@
                 	if(result.current.state == "active") {
                 		infoTimer.delay = infoTimerActive;
                 		
-	                	activateMonitoring(event);
+	                	activateMonitoring(result);
 	                	
 	                	if(secondsToCaptureEnd >= 59)
 	                	{
@@ -287,6 +289,7 @@
 	                	mainInfo.text = resourceManager.getString("EchoMonitor","active_capture_has_been_paused");
 	                	secondaryInfo.text = "\"" + result.current.schedule.parameters.title + "\"";
 	                } else if(result.current.schedule.parameters != undefined && result.current.state == "waiting") {
+	                	deactivateMonitoring();
 	                	infoTimer.delay = infoTimerActive;
 	                	difference = startTime.getTime()-now.getTime();
 	        	        var secondsToNextCapture:int = Math.round(difference/1000);
@@ -340,8 +343,8 @@
             } // infoHandler
             
             // monitorHandler
-            private function monitorHandler(event:ResultEvent):void {
-            	var result:XML = event.result as XML;
+            private function monitorHandler(result:XML):void {
+            	// var result:XML = event.result as XML;
             	
             	// debugMe("info","Result XML from monitorHandler:\n" + result);
             	
@@ -353,6 +356,11 @@
             		*/
 
             		var capturedSources:String = String(result.current.schedule.parameters.child("name-key"));
+					debugMe("info", "Original capturedSources: " + capturedSources);
+            		if(capturedSources.length == 0) {
+            			capturedSources = "audio-display-video";
+            		}
+            		debugMe("info", "capturedSources: " + capturedSources);
             		
             		if(!monitorArea.visible) {
 	            		monitorArea.setVisible(true);
@@ -541,14 +549,14 @@
 			} // setMonitoredAppliance
 			
 			// activateMonitoring
-			private function activateMonitoring(event:ResultEvent):void {
+			private function activateMonitoring(result:XML):void {
 				/*
 				if(!monitorTimer.running) {
 					monitorTimer.start();
 				}
 				*/
 				
-				monitorHandler(event);
+				monitorHandler(result);
 			} // activateMonitoring
 			
 			// deactivateMonitoring
@@ -567,6 +575,9 @@
 				
 				monitorArea.filters = [okGlow];
 				audioErrorCount = 0;
+        		if(checkAudio.visible) {
+        			checkAudio.setVisible(false);
+        		}
 			} // deactivateMonitoring
 			
 			// changeView
