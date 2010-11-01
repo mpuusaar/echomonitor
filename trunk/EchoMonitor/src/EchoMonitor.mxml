@@ -114,6 +114,7 @@
             import mx.utils.Base64Encoder;
             import mx.utils.StringUtil;
             
+            // Application variables
             private var applianceURL:String;
             private var CONTROLKeyDown:Boolean = false;
             private var DKeyDown:Boolean = false;
@@ -128,7 +129,9 @@
             private var monitorImageRequestHeader:URLRequestHeader;
             private var controlBarInfoErrorColor:String = "#C80101";
             private var configurationFileName:String = "configuration.xml";
+            // End of application variables
 
+			// Configuration variables and their default values
 			private var audioErrorLevel:int = 5000;
 			private var audioErrorLimit:int = 20;
 			private var audioWarningLimit:int = 10;
@@ -141,6 +144,7 @@
             private var showFirstApplianceAutomatically:Boolean = false;
             private var showRoomSelection:Boolean = true;
             private var startFullscreen:Boolean = true;
+            // End on configuration variables
 
             private const day:int = 1000 * 60 * 60 * 24;
             private const hour:int = 1000 * 60 * 60;
@@ -664,7 +668,7 @@
 		<mx:Image source="@Embed(source='assets/en_US.svg')" click="setLocale('en_US')" width="20" height="12"/>
 		<mx:Image source="@Embed(source='assets/et_EE.svg')" click="setLocale('et_EE')" width="20" height="12"/>
 		<mx:Spacer width="100%"/>
-		<mx:Label width="100%" textAlign="center" id="controlBarInfo"/>
+		<mx:Label width="100%" textAlign="center" id="controlBarInfoLbl"/>
 		<mx:Spacer width="100%"/>
     	<mx:Label text="{resourceManager.getString('EchoMonitor', 'select_room')}" id="chooseApplianceLbl" visible="false"/>
     	<mx:ComboBox editable="false" id="applianceChooser" dataProvider="{appliances}" labelField="name" change="setMonitoredAppliance();" visible="false"></mx:ComboBox>
