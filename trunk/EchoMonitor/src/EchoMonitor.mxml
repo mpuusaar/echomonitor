@@ -129,7 +129,7 @@
             private var monitorDisplayImageLoader:Loader;
             private var monitorImageRequestHeader:URLRequestHeader;
             private var controlBarInfoErrorColor:String = "#C80101";
-            private var configurationFileName:String = "configuration_dev.xml";
+            private var configurationFileName:String = "configuration.xml";
             private var networkErrorCount:int = 0;
             // End of application variables
 
