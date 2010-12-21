@@ -19,7 +19,7 @@
    TODO:
     - handle monitoring from different timezone than the appliance with correct dates and times
     - [DONE] clear audio error message when a capture ends
-    - notify the user of any network/connection problems that cause EchoMonitor not to be able to connect to the selected appliance
+    - [DONE] notify the user of any network/connection problems that cause EchoMonitor not to be able to connect to the selected appliance
     - [DONE] optimize connections to the capture appliance 
     - handle locale change with more grace :)
     - [DONE] improve the display of monitoring area (hide scrollbars)
@@ -28,7 +28,7 @@
 -->
 <mx:WindowedApplication
 	xmlns:mx="http://www.adobe.com/2006/mxml"
-	layout="vertical"
+	layout="absolute"
 	horizontalAlign="center"
 	verticalAlign="middle"
 	width="900"
@@ -80,17 +80,18 @@
 <mx:GlowFilter id="okGlow"
 	color="0x000000"
 	alpha="1"
-	blurX="25"
-	blurY="25" />
+	blurX="20"
+	blurY="20"
+	quality="2" />
 <mx:GlowFilter id="warningGlow"
 	color="0xFF5100"
 	alpha="1"
-	blurX="25"
-	blurY="25" />
-<mx:Move id="moveDown"
-	yTo="300" />
-<mx:Move id="moveUp"
-	yTo="0" />
+	blurX="20"
+	blurY="20" />
+<mx:BlurFilter id="blurredBox"
+	blurX="10"
+	blurY="10"
+	quality="3" />
 <mx:DateFormatter id="dateFormatter" 
 	formatString="{resourceManager.getString('EchoMonitor', 'DATE_FORMAT')}" />
 <mx:DateFormatter id="timeFormatter"
@@ -128,7 +129,8 @@
             private var monitorDisplayImageLoader:Loader;
             private var monitorImageRequestHeader:URLRequestHeader;
             private var controlBarInfoErrorColor:String = "#C80101";
-            private var configurationFileName:String = "configuration.xml";
+            private var configurationFileName:String = "configuration_dev.xml";
+            private var networkErrorCount:int = 0;
             // End of application variables
 
 			// Configuration variables and their default values
@@ -182,6 +184,8 @@
             	stage.addEventListener(KeyboardEvent.KEY_UP, reportKeyUp);
 				
 				monitorArea.filters = [okGlow];
+				errorHeader.filters = [okGlow];
+				errorMessage.filters = [okGlow];
 				
 				this.addEventListener(AIREvent.APPLICATION_ACTIVATE, applicationActivate);
 				this.addEventListener(AIREvent.APPLICATION_DEACTIVATE, applicationDeactivate);
@@ -264,6 +268,9 @@
                 var minutesToNextCapture:int;
                 var hoursToNextCapture:int;
                 
+                deactivateErrorBox();
+            	networkErrorCount = 0;
+                
 				debugMe("info","Result XML from infoHandler:\n" + result);
                 
                 if(result.current.schedule.parameters != undefined) {
@@ -340,6 +347,7 @@
         	        
         	        secondaryInfo.text = "\"" + result.next.parameters.title + "\"\n" + dateFormatter.format(startTime) + " @ " + timeFormatter.format(startTime) + " / " + durationInMinutes + " " + resourceManager.getString("EchoMonitor","minutes");;
         	    } else {
+        	    	deactivateMonitoring();
         	    	infoTimer.delay = infoTimerIdle;
         	    	mainInfo.text = resourceManager.getString("EchoMonitor", "no_next_capture");
         	    	secondaryInfo.text = "";
@@ -471,8 +479,30 @@
             
             // httpFault
             private function httpFault(source:String, event:FaultEvent):void {
-                	debugMe("error", "httpFault: (" + source + ") " + event.fault.faultString + "[" + event.fault.faultCode + "]");
+            	if(event.fault.faultCode == "Server.Error.Request") {
+            		networkErrorCount++;
+            	}
+            	
+            	if(networkErrorCount > 3) {
+            		activateErrorBox("httpFault");
+            	}
+            	
+                debugMe("error", "httpFault: (" + source + ") " + event.fault.faultString + " [" + event.fault.faultCode + "]");
             } // httpFault
+            
+            private function activateErrorBox(type:String):void {
+            	if(type == "httpFault") {
+					errorHeader.text = resourceManager.getString('EchoMonitor', 'connection_error_header');
+					errorMessage.text = resourceManager.getString('EchoMonitor', 'connection_error_message');
+					middleVBox.filters = [blurredBox];
+					errorBox.setVisible(true);
+            	}
+            } //activateErrorBox
+            
+            private function deactivateErrorBox():void {
+            	middleVBox.filters = null;
+            	errorBox.setVisible(false);
+            } //deactivateErrorBox
             
             // getMonitorImage
 			private function getMonitorImage(type:String, address:String, toImage:Object):void {
@@ -664,7 +694,7 @@
             } // checkKeys
         ]]>
     </mx:Script>
-	<mx:ApplicationControlBar dock="true" id="monitorControlBar">
+	<mx:ApplicationControlBar dock="true" id="monitorControlBar" y="0" x="0">
 		<mx:Image source="@Embed(source='assets/en_US.svg')" click="setLocale('en_US')" width="20" height="12"/>
 		<mx:Image source="@Embed(source='assets/et_EE.svg')" click="setLocale('et_EE')" width="20" height="12"/>
 		<mx:Spacer width="100%"/>
@@ -675,7 +705,7 @@
     	<mx:Button click="changeView();" label="{resourceManager.getString('EchoMonitor', 'exit_fullscreen')}" id="changeViewBtn"/>
     	<mx:Button click="NativeApplication.nativeApplication.exit();" label="{resourceManager.getString('EchoMonitor', 'exit_application')}"/>
 	</mx:ApplicationControlBar>
-	<mx:VBox width="100%" height="85%" horizontalAlign="center" id="middleVBox">
+	<mx:VBox width="100%" height="85%" horizontalAlign="center" id="middleVBox" horizontalCenter="0" verticalCenter="0">
 		<mx:Spacer height="2%"/>
 	    <mx:Text id="mainInfo" fontSize="30" color="#F0DCB9" width="90%" textAlign="center" paddingBottom="-10"/>
 	    <mx:Text id="secondaryInfo" fontSize="22" color="#F0DCB9" width="90%" textAlign="center"/>
@@ -690,5 +720,9 @@
 		    <mx:Text text="{resourceManager.getString('EchoMonitor', 'display_missing')}" visible="false" horizontalCenter="185" verticalCenter="0" color="#FF5100" width="320" fontSize="30" fontWeight="bold" textAlign="center" id="checkDisplay"/>
 	    </mx:Canvas>
 	</mx:VBox>
-	<mx:TextArea width="90%" height="15%" id="debugInfo" visible="false" backgroundColor="#105761" color="#FFFFFF" backgroundAlpha="0.5"/>
+	<mx:Canvas id="errorBox" visible="false" width="94%" height="85%" horizontalCenter="0" verticalCenter="0" backgroundColor="#000000" backgroundAlpha="0.2" cornerRadius="30" borderColor="#000000" borderStyle="solid" borderThickness="0" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+		<mx:Text id="errorHeader" fontSize="44" color="#FF5100" width="90%" horizontalCenter="0" verticalCenter="-40" textAlign="center" text="Network Error!" fontWeight="normal"/>
+		<mx:Text id="errorMessage" fontSize="22" color="#FF5100" width="90%" horizontalCenter="0" verticalCenter="40"  fontWeight="normal" text="Kala Kala Kala Kala Kala Kala" textAlign="center"/>
+	</mx:Canvas>
+	<mx:TextArea width="90%" height="20%" id="debugInfo" visible="false" backgroundColor="#105761" color="#FFFFFF" backgroundAlpha="0.5" bottom="10" horizontalCenter="0"/>
 </mx:WindowedApplication>
