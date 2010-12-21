@@ -1,7 +1,7 @@
 **********************
 README for EchoMonitor
 **********************
-Last updated: 29th October 2010
+Last updated: 21st December 2010
 
 http://code.google.com/p/echomonitor/
 
@@ -61,6 +61,11 @@ Just add your appliances information to the <appliances>...</appliances> section
 ************
 3) CHANGELOG
 ************
+Version 0.9.8
+- implemented connection error detection and an appropriate error message for informing the user
+- fixed a bug that caused EchoMonitor to display the monitoring window forever when there were no future captures scheduled on the capture appliance.
+- some minor interface fixes and improvements
+
 Version 0.9.8
 - the number and frequency of connections made to the appliances has been optimized to avoid overloading the appliances API mechanism
 - the frequency of requests to the appliances is now simply configurable through the configuration.xml file
