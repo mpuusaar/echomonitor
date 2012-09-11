@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+	<appliances>
+		<appliance>
+			<name>My Appliance 1</name>
+			<address>http://192.168.0.1:8443</address>
+			<username>instructor</username>
+			<password>password</password>
+		</appliance>
+	</appliances>
+	<audioErrorLevel>5000</audioErrorLevel>
+	<audioErrorLimit>20</audioErrorLimit>
+	<audioWarningLimit>10</audioWarningLimit>
+	<debug>false</debug>
+	<defaultLocale>en_US</defaultLocale>
+	<infoTimerActive>3000</infoTimerActive>
+	<infoTimerIdle>10000</infoTimerIdle>
+	<showFirstApplianceAutomatically>true</showFirstApplianceAutomatically>
+	<showRoomSelection>true</showRoomSelection>
+	<startFullscreen>true</startFullscreen>
+</configuration>
