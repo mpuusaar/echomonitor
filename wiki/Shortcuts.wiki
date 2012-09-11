@@ -4,3 +4,4 @@
 There are two simple shortcuts in EchoMonitor:
  # Pressing *CTRL+H* on your keyboard hides or shows the upper control bar in EchoMonitor - this could be useful in classroom installations where EchoMonitor is being used as a confidence monitoring solution and there should be no visible controls in EchoMonitor interface.
  # Pressing *CTRL+D* on your keyboard hides or shows the debugging area at the bottom of EchoMonitor.
+ # Pressing *CTRL+F* on your keyboard toggles the fullscreen mode of EchoMonitor.
