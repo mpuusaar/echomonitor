@@ -1,9 +1,11 @@
 #summary Configuring EchoMonitor.
 #labels Phase-Deploy,Featured,Configuration
 
+*Important*: EchoMonitor configuration file location was changed starting from the version 0.9.10 - pay close attention to this document!
+
 == Introduction ==
 
-EchoMonitor can be configured through a simple XML file _configuration.xml_ that resides in the EchoMonitor installation folder.
+EchoMonitor can be configured through a simple XML file _configuration.xml_ that resides in the EchoMonitor local storage folder.
 
 This document has vital information about the first-time configuration of EchoMonitor and for more advanced configuration.
 
@@ -20,7 +22,7 @@ Before running EchoMonitor for the first time you will need to:
 
 === Adding your appliances information to the configuration ===
 
-You can find the configuration file from the same directory where you installed EchoMonitor itself (Windows - C:\Program Files\EchoMonitor\; Mac OS X - /Applications/EchoMonitor/).
+You can find the configuration file for EchoMonitor from the local data store directory for EchoMonitor (on Windows Vista and 7 - C:\Users\[username]\AppData\Roaming\EchoMonitor.[random string]\Local Store\; Mac OS X - /Users/[username]/Library/Preferences/EchoMonitor/Local Store/).
 
 The configuration file is in XML format and can be edited with Notepad or WordPad (on Windows) or TextEdit (on Mac OS X) or with your favourite text-editor.
 
