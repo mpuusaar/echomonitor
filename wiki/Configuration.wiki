@@ -22,9 +22,11 @@ Before running EchoMonitor for the first time you will need to:
 
 === Adding your appliances information to the configuration ===
 
-You can find the configuration file for EchoMonitor from the local data store directory for EchoMonitor (on Windows Vista and 7 - C:\Users\[username]\AppData\Roaming\EchoMonitor.[random string]\Local Store\; Mac OS X - /Users/[username]/Library/Preferences/EchoMonitor/Local Store/).
+You can find the configuration file for EchoMonitor from the local data store directory for EchoMonitor (on Windows Vista and 7 - `C:\Users\[username]\AppData\Roaming\EchoMonitor.[random string]\Local Store\`; on MacOS X - `/Users/[username]/Library/Preferences/EchoMonitor/Local Store/`).
 
-The configuration file is in XML format and can be edited with Notepad or WordPad (on Windows) or TextEdit (on Mac OS X) or with your favourite text-editor.
+If the configuration file doesn't exist when the EchoMonitor starts then EchoMonitor will create the configuration file and inform the user about the location of the new configuration file.
+
+The configuration file is in XML format and can be edited with Notepad or WordPad (on Windows) or TextEdit (on MacOS X) or with your favourite text-editor.
 
 Normally a new configuration file looks like this:
 {{{
