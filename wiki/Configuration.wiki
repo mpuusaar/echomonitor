@@ -72,6 +72,7 @@ This section will describe all the advanced configuration options available for 
 ||<audioWarningLimit>10</audioWarningLimit>||  ||
 ||<debug>false</debug>||  ||
 ||<defaultLocale>en_US</defaultLocale>||  ||
+||<hideLiveStreamInfo>false</hideLiveStreamInfo>||  ||
 ||<showFirstApplianceAutomatically>true</showFirstApplianceAutomatically>||  ||
 ||<showRoomSelection>true</showRoomSelection>||  ||
 ||<startFullscreen>true</startFullscreen>|| If this option is marked _true_ EchoMonitor will start in fullscreen mode. If this option is marked _false_ the EchoMonitor application will start in windowed mode. You can also switch between fullscreen and windowed mode while the EchoMonitor application is running. ||
