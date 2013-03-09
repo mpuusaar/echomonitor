@@ -35,7 +35,7 @@ Normally a new configuration file looks like this:
 	<appliances>
 		<appliance>
 			<name>My Appliance 1</name>
-			<address>https://192.168.0.1:8443</address>
+			<address>http://192.168.0.1:8443</address>
 			<username>instructor</username>
 			<password>password</password>
 		</appliance>
@@ -45,6 +45,11 @@ Normally a new configuration file looks like this:
 	<audioWarningLimit>10</audioWarningLimit>
 	<debug>false</debug>
 	<defaultLocale>en_US</defaultLocale>
+	<hideLiveStreamInfo>false</hideLiveStreamInfo>
+	<hideSourceLabel>false</hideSourceLabel>
+	<hideVUMeter>false</hideVUMeter>
+	<infoTimerActive>3000</infoTimerActive>
+	<infoTimerIdle>10000</infoTimerIdle>
 	<showFirstApplianceAutomatically>true</showFirstApplianceAutomatically>
 	<showRoomSelection>true</showRoomSelection>
 	<startFullscreen>true</startFullscreen>
@@ -70,9 +75,11 @@ This section will describe all the advanced configuration options available for 
 ||<audioErrorLevel>5000</audioErrorLevel>||  ||
 ||<audioErrorLimit>20</audioErrorLimit>||  ||
 ||<audioWarningLimit>10</audioWarningLimit>||  ||
-||<debug>false</debug>||  ||
-||<defaultLocale>en_US</defaultLocale>||  ||
+||<debug>false</debug>|| If this option is marked _true_ EchoMonitor will show a small debugging window at the bottom of the EchoMonitor interface. ||
+||<defaultLocale>en_US</defaultLocale>|| This option sets the default locale for EchoMonitor that is used for the interface when the program starts up. ||
 ||<hideLiveStreamInfo>false</hideLiveStreamInfo>||  ||
+||<hideSourceLabel>false</hideSourceLabel>|| If this option is marked _true_ then the labels in EchoMonitor on capture sources are hidden. If the option is marked _false_ then the labels in EchoMonitor on capture sources are shown. ||
+||<hideVUMeter>false</hideVUMeter>||  ||
 ||<showFirstApplianceAutomatically>true</showFirstApplianceAutomatically>||  ||
 ||<showRoomSelection>true</showRoomSelection>||  ||
 ||<startFullscreen>true</startFullscreen>|| If this option is marked _true_ EchoMonitor will start in fullscreen mode. If this option is marked _false_ the EchoMonitor application will start in windowed mode. You can also switch between fullscreen and windowed mode while the EchoMonitor application is running. ||
