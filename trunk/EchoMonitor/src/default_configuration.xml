@@ -13,6 +13,9 @@
 	<audioWarningLimit>10</audioWarningLimit>
 	<debug>false</debug>
 	<defaultLocale>en_US</defaultLocale>
+	<hideLiveStreamInfo>false</hideLiveStreamInfo>
+	<hideSourceLabel>false</hideSourceLabel>
+	<hideVUMeter>false</hideVUMeter>
 	<infoTimerActive>3000</infoTimerActive>
 	<infoTimerIdle>10000</infoTimerIdle>
 	<showFirstApplianceAutomatically>true</showFirstApplianceAutomatically>
