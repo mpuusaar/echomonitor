@@ -66,20 +66,22 @@ You will need to edit the section between _<appliances>_ and _</appliances>_ to 
 
 Because the default https certificate on the Echo360 capture appliances is not accepted by most of the browsers and other software as legitimate you will need to allow EchoMonitor to connect to the capture appliances without using the encrypted connections.
 
-...
+To achieve this set the Access Protocol option to "HTTP" under the capture appliances settings page (Configuration -> Devices -> ...) and save the new settings.
+
+*NB!* This setting makes your capture appliance vulnerable to network traffic sniffing and possible leak of usernames and passwords used to connect to the appliance. The authors of EchoMonitor will not take any responsibilities regarding the safety of your Echo360 capture appliances configuration.
 
 == Advanced configuration ==
 
 This section will describe all the advanced configuration options available for EchoMonitor.
 
-||<audioErrorLevel>5000</audioErrorLevel>||  ||
+||<audioErrorLevel>5000</audioErrorLevel>|| This sets the minimum input audio volume level that EchoMonitor will accept as normal. When the input audio volume drops below this value the EchoMonitor will initiate actions to soon inform the user about possible problems regarding audio input on the capture appliance. On Echo360 capture appliances the input audio levels are measured between 0 - 32000. ||
 ||<audioErrorLimit>20</audioErrorLimit>||  ||
 ||<audioWarningLimit>10</audioWarningLimit>||  ||
 ||<debug>false</debug>|| If this option is marked _true_ EchoMonitor will show a small debugging window at the bottom of the EchoMonitor interface. ||
 ||<defaultLocale>en_US</defaultLocale>|| This option sets the default locale for EchoMonitor that is used for the interface when the program starts up. ||
 ||<hideLiveStreamInfo>false</hideLiveStreamInfo>||  ||
 ||<hideSourceLabel>false</hideSourceLabel>|| If this option is marked _true_ then the labels in EchoMonitor on capture sources are hidden. If the option is marked _false_ then the labels in EchoMonitor on capture sources are shown. ||
-||<hideVUMeter>false</hideVUMeter>||  ||
-||<showFirstApplianceAutomatically>true</showFirstApplianceAutomatically>||  ||
+||<hideVUMeter>false</hideVUMeter>|| Should the VU Meter, that shows the audio input volume level graphically, be hidden (true) of shown (false) in EchoMonitor. ||
+||<showFirstApplianceAutomatically>true</showFirstApplianceAutomatically>|| If this option is marked _true_ EchoMonitor will connect automatically to the first capture appliance listed in the configuration right after EchoMonitor has started. Setting this option to _false_ means that the user has to select an appliance from the list of available appliances to initiate monitoring. ||
 ||<showRoomSelection>true</showRoomSelection>||  ||
 ||<startFullscreen>true</startFullscreen>|| If this option is marked _true_ EchoMonitor will start in fullscreen mode. If this option is marked _false_ the EchoMonitor application will start in windowed mode. You can also switch between fullscreen and windowed mode while the EchoMonitor application is running. ||
