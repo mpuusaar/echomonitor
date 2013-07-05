@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
 
-   Copyright 2011-2013 Marko Puusaar / Estonian Information Technology Foundation
+   Copyright 2011-2013 Marko Puusaar / Information Technology Foundation for Education
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -156,6 +156,7 @@
 				configuration.defaultLocale = "en_US";
 				configuration.hideLiveStreamInfo = false;
 				configuration.hideSourceLabel = false;
+				configuration.hideSettingsButton = false;
 				configuration.hideVUMeter = false;
 				configuration.infoTimerActive = 3000;
 				configuration.infoTimerIdle = 10000;
@@ -181,6 +182,10 @@
 
             	if(configuration.debug) {
             		debugInfo.setVisible(true);
+            	}
+            	
+            	if(configuration.hideSettingsButton) {
+            		settingsBtn.setVisible(false);
             	}
             	
             	stage.addEventListener(KeyboardEvent.KEY_DOWN, reportKeyDown);
@@ -209,7 +214,7 @@
             // loadConfiguration
             private function loadConfiguration():void {
             	configurationFile = File.applicationStorageDirectory.resolvePath(configurationFileName);
-            	debugMe("info", "Configuration: " + configurationFile.nativePath);
+            	debugMe("info", "Configuration file: " + configurationFile.nativePath, true);
             	if(configurationFile.exists) { // Does the configuraton file exist?
 					configurationFileStream = new FileStream();
 				    configurationFileStream.open(configurationFile, FileMode.READ);
@@ -236,6 +241,9 @@
 					if(configurationXML.hideLiveStreamInfo != undefined) {
 						configuration.hideLiveStreamInfo = configurationXML.hideLiveStreamInfo.toLowerCase() == "true";
 					}
+					if(configurationXML.hideSettingsButton != undefined) {
+						configuration.hideSettingsButton = configurationXML.hideSettingsButton.toLowerCase() == "true";
+					}
 					if(configurationXML.hideSourceLabel != undefined) {
 						configuration.hideSourceLabel = configurationXML.hideSourceLabel.toLowerCase() == "true";
 					}
@@ -254,7 +262,7 @@
 						configuration.startFullscreen = configurationXML.startFullscreen.toLowerCase() == "true";
 					}
 					
-					debugMe("info", configurationXML.toString());
+					// debugMe("info", configurationXML.toString());
             	} else { // The configuration file does not exist
 					setUpConfigurationFile(); // Set up the configuration file
             	}
@@ -768,10 +776,13 @@
 
 
 			// debugMe
-			private function debugMe(type:String, debugString:String):void {
-				if(configuration.debug && debugString.length > 0) {
+			private function debugMe(type:String, debugString:String, force:Boolean = false):void {
+				if((configuration.debug && debugString.length > 0) || (force && debugString.length > 0)) {
 					var now:Date = new Date();
 					debugInfo.text += dateFormatter.format(now) + " " + timeWithSecondsFormatter.format(now) + ":\n" + debugString + "\n ----- \n";
+					if(!configuration.debug) {
+						debugInfo.setVisible(false);
+					}
 				}
 			} // debugMe
 
@@ -849,23 +860,32 @@
             	} else if(KeysDown.CONTROL && KeysDown.D) { // Hides or shows the debugging area if CTRL+D is pressed on the keyboard
             		configuration.debug = !configuration.debug;
             		debugInfo.visible = !debugInfo.visible;
-            	} else if(KeysDown.CONTROL && KeysDown.F) {
+            	} else if(KeysDown.CONTROL && KeysDown.F) { // Toggles fullscreen if CTRL+F is pressed on the keyboard
             		changeView();
-            	} else if(KeysDown.CONTROL && KeysDown.L) {
+            	} else if(KeysDown.CONTROL && KeysDown.L) { // Hides or shows the source label on the monitoring images if CTRL+L is pressed on the keyboard
             		configuration.hideSourceLabel = !configuration.hideSourceLabel;
             	}
             } // checkKeys
+
+
+            // openSettings
+            private function openSettings():void {
+            	navigateToURL(new URLRequest("file:///" + configurationFile.parent.nativePath));
+            } // openSettings
         ]]>
     </mx:Script>
 	<mx:ApplicationControlBar dock="true" id="monitorControlBar" y="0" x="0">
 		<mx:Image source="@Embed(source='assets/en_US.svg')" click="setLocale('en_US')" width="20" height="12"/>
 		<mx:Image source="@Embed(source='assets/et_EE.svg')" click="setLocale('et_EE')" width="20" height="12"/>
+		<mx:Image source="@Embed(source='assets/fi_FI.svg')" click="setLocale('fi_FI')" width="20" height="12"/>
+		<mx:Image source="@Embed(source='assets/ru_RU.svg')" click="setLocale('ru_RU')" width="20" height="12"/>
 		<mx:Spacer width="100%"/>
 		<mx:Label width="100%" textAlign="center" id="controlBarInfoLbl"/>
 		<mx:Spacer width="100%"/>
     	<mx:Label text="{resourceManager.getString('EchoMonitor', 'select_room')}" id="chooseApplianceLbl" visible="false"/>
-    	<mx:ComboBox editable="false" id="applianceChooser" dataProvider="{appliances}" labelField="name" change="setMonitoredAppliance();" visible="false"></mx:ComboBox>
+    	<mx:ComboBox rowCount="25" editable="false" id="applianceChooser" dataProvider="{appliances}" labelField="name" change="setMonitoredAppliance();" visible="false"></mx:ComboBox>
     	<mx:Button click="changeView();" label="{resourceManager.getString('EchoMonitor', 'exit_fullscreen')}" id="changeViewBtn"/>
+    	<mx:Button click="openSettings();" label="{resourceManager.getString('EchoMonitor', 'settings')}" id="settingsBtn"/>
     	<mx:Button click="NativeApplication.nativeApplication.exit();" label="{resourceManager.getString('EchoMonitor', 'exit_application')}"/>
 	</mx:ApplicationControlBar>
 	<mx:TitleWindow visible="false" width="350" height="200" layout="vertical" showCloseButton="false" horizontalAlign="center" id="loginBox" horizontalCenter="0" verticalCenter="0" backgroundColor="#105761" backgroundAlpha="0.6">
@@ -923,5 +943,5 @@
 		<mx:Text id="errorHeader" fontSize="44" color="#FF5100" width="90%" horizontalCenter="0" verticalCenter="-40" textAlign="center" text="Network Error!" fontWeight="normal"/>
 		<mx:Text id="errorMessage" fontSize="22" color="#FF5100" width="90%" horizontalCenter="0" verticalCenter="40"  fontWeight="normal" text="" textAlign="center"/>
 	</mx:Canvas>
-	<mx:TextArea width="90%" height="20%" id="debugInfo" visible="false" backgroundColor="#105761" color="#FFFFFF" backgroundAlpha="0.5" bottom="10" horizontalCenter="0"/>
+	<mx:TextArea width="90%" height="20%" id="debugInfo" visible="true" backgroundColor="#105761" color="#FFFFFF" backgroundAlpha="0.5" bottom="10" horizontalCenter="0"/>
 </mx:WindowedApplication>

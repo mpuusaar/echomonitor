@@ -12,8 +12,16 @@
 	<audioErrorLimit>20</audioErrorLimit>
 	<audioWarningLimit>10</audioWarningLimit>
 	<debug>false</debug>
+	<!--
+		Possible values for defaultLocale:
+			English (US) - en_US
+			Estonian - et_EE
+			Finish - fi_FI
+			Russian - ru_RU
+	-->
 	<defaultLocale>en_US</defaultLocale>
 	<hideLiveStreamInfo>false</hideLiveStreamInfo>
+	<hideSettingsButton>false</hideSettingsButton>
 	<hideSourceLabel>false</hideSourceLabel>
 	<hideVUMeter>false</hideVUMeter>
 	<infoTimerActive>3000</infoTimerActive>
