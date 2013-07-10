@@ -870,14 +870,15 @@
 
             // openSettings
             private function openSettings():void {
-            	navigateToURL(new URLRequest("file:///" + configurationFile.parent.nativePath));
+            	Alert.show(StringUtil.substitute(resourceManager.getString("EchoMonitor","configuration_location"), configurationFile.parent.nativePath.toString()));
+            	//navigateToURL(new URLRequest("file:///" + configurationFile.parent.nativePath));
             } // openSettings
         ]]>
     </mx:Script>
 	<mx:ApplicationControlBar dock="true" id="monitorControlBar" y="0" x="0">
 		<mx:Image source="@Embed(source='assets/en_US.svg')" click="setLocale('en_US')" width="20" height="12"/>
 		<mx:Image source="@Embed(source='assets/et_EE.svg')" click="setLocale('et_EE')" width="20" height="12"/>
-		<mx:Image source="@Embed(source='assets/fi_FI.svg')" click="setLocale('fi_FI')" width="20" height="12"/>
+<!--		<mx:Image source="@Embed(source='assets/fi_FI.svg')" click="setLocale('fi_FI')" width="20" height="12"/> -->
 		<mx:Image source="@Embed(source='assets/ru_RU.svg')" click="setLocale('ru_RU')" width="20" height="12"/>
 		<mx:Spacer width="100%"/>
 		<mx:Label width="100%" textAlign="center" id="controlBarInfoLbl"/>
