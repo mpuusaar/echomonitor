@@ -1,7 +1,7 @@
 **********************
 README for EchoMonitor
 **********************
-Last updated: 5th July 2013
+Last updated: 13th of January 2014
 
 http://code.google.com/p/echomonitor/
 
@@ -61,10 +61,15 @@ Normally a new configuration file looks like this:
 			Russian - ru_RU
 	-->
 	<defaultLocale>en_US</defaultLocale>
+	<enableCaptureControl>true</enableCaptureControl>
+	<hideControlButtons>false</hideControlButtons>
 	<hideLiveStreamInfo>false</hideLiveStreamInfo>
 	<hideSettingsButton>false</hideSettingsButton>
 	<hideSourceLabel>false</hideSourceLabel>
+	<hideStartMonitoringButton>true</hideStartMonitoringButton>
 	<hideVUMeter>false</hideVUMeter>
+	<ignoreMissingDisplaySignal>false</ignoreMissingDisplaySignal>
+	<ignoreMissingVideoSignal>false</ignoreMissingVideoSignal>
 	<infoTimerActive>3000</infoTimerActive>
 	<infoTimerIdle>10000</infoTimerIdle>
 	<showFirstApplianceAutomatically>true</showFirstApplianceAutomatically>
@@ -78,6 +83,12 @@ Just add your appliances information to the <appliances>...</appliances> section
 ************
 3) CHANGELOG
 ************
+Version 0.9.13
+- added control buttons to stop, pause, extend and resume the capture (the buttons can be toggled on and off through configuration <hideControlButtons>false</hideControlButtons> or with the shortcut CTRL+B)
+- added a functionality to start monitoring from EchoMonitor application by using the shortcut CTRL+M and a optionally enablable "Start monitoring" button (<hideStartMonitoringButton>true</hideStartMonitoringButton>)
+- added a new configuration directive to ignore missing signal status information returned by the capture appliance API and try to load the approriate thumbnails (<ignoreMissingDisplaySignal>false</ignoreMissingDisplaySignal>, <ignoreMissingVideoSignal>false</ignoreMissingVideoSignal>)
+- updated the copyright information for EchoMonitor
+
 Version 0.9.12
 - new locale: Russian. Thanks to Juri Tretjakov for translating EchoMonitor into Russian.
 - added a new button "Settings" to help find out the location of the configuration file.

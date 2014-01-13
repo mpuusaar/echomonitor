@@ -20,10 +20,15 @@
 			Russian - ru_RU
 	-->
 	<defaultLocale>en_US</defaultLocale>
+	<enableCaptureControl>true</enableCaptureControl>
+	<hideControlButtons>false</hideControlButtons>
 	<hideLiveStreamInfo>false</hideLiveStreamInfo>
 	<hideSettingsButton>false</hideSettingsButton>
 	<hideSourceLabel>false</hideSourceLabel>
+	<hideStartMonitoringButton>true</hideStartMonitoringButton>
 	<hideVUMeter>false</hideVUMeter>
+	<ignoreMissingDisplaySignal>false</ignoreMissingDisplaySignal>
+	<ignoreMissingVideoSignal>false</ignoreMissingVideoSignal>
 	<infoTimerActive>3000</infoTimerActive>
 	<infoTimerIdle>10000</infoTimerIdle>
 	<showFirstApplianceAutomatically>true</showFirstApplianceAutomatically>

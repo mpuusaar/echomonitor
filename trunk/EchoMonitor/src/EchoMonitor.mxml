@@ -126,10 +126,11 @@
             private var audioErrorCount:int = 0;
             private var monitorImageLoader:Array = [];
             private var monitorImageRequestHeader:URLRequestHeader;
+            private var monitoringProfile:String = null;
             private var controlBarInfoErrorColor:String = "#C80101";
-            private var controlLoader:Loader;
             private var configurationFileName:String = "configuration.xml";
             private var networkErrorCount:int = 0;
+            private var captureState:String = null;
             // End of application variables
 
 			// Configuration variables and their default values
@@ -165,6 +166,7 @@
 				configuration.enableCaptureControl = false;
 				configuration.hideControlButtons = false;
 				configuration.hideLiveStreamInfo = false;
+				configuration.hideStartMonitoringButton = true;
 				configuration.hideSourceLabel = false;
 				configuration.hideSettingsButton = false;
 				configuration.hideVUMeter = false;
@@ -204,6 +206,10 @@
             		settingsBtn.setVisible(false);
             	}
             	
+            	if(!configuration.hideStartMonitoringButton) {
+            		startMonitoringBtn.setVisible(true);
+            	}
+            	
             	stage.addEventListener(KeyboardEvent.KEY_DOWN, reportKeyDown);
             	stage.addEventListener(KeyboardEvent.KEY_UP, reportKeyUp);
 				
@@ -220,8 +226,8 @@
 				monitorImageLoader[0] = new Loader(); // Just in case :) Theoretically this should never be used
 				monitorImageLoader[1] = new Loader(); // For loading the first monitoring image
 				monitorImageLoader[2] = new Loader(); // For loading the second monitoring image
-				
-				controlLoader = new Loader(); // For sending control requests to the appliance
+
+				controlHTTPService.contentType = "text/plain;charset=UTF-8";
 
 				if(configuration.showFirstApplianceAutomatically) { // Check if hte first appliance in the appliances list should be showed automatically
 					setMonitoredAppliance();
@@ -270,6 +276,9 @@
 					}
 					if(configurationXML.hideSourceLabel != undefined) {
 						configuration.hideSourceLabel = configurationXML.hideSourceLabel.toLowerCase() == "true";
+					}
+					if(configurationXML.hideStartMonitoringButton != undefined) {
+						configuration.hideStartMonitoringButton = configurationXML.hideStartMonitoringButton.toLowerCase() == "true";
 					}
 					if(configurationXML.hideVUMeter != undefined) {
 						configuration.hideVUMeter = configurationXML.hideVUMeter.toLowerCase() == "true";
@@ -338,17 +347,21 @@
                 var hoursToNextCapture:int;
                 
                 deactivateErrorBox();
-            	networkErrorCount = 0;
+            	networkErrorCount = 0; // Set the error count of network errors to 0
                 
 				debugMe("info","Result XML from infoHandler:\n" + result);
                 
+                // Check if there is a  current capture scheduled?
                 if(result.current.schedule.parameters != undefined) {
                 	startTime = isoToDate(result.current.schedule.child("start-time"));
                 	durationInMinutes = int(result.current.duration)/60;
 	               	var captureEnd:Number = startTime.getTime()+(result.current.duration*1000);
 	                var secondsToCaptureEnd:Number = Math.round((captureEnd-now.getTime())/1000);
-	                	
+	                
+	                // Is there an active capture going on at the moment?
                 	if(result.current.state == "active") {
+                		captureState = "active";
+
                 		infoTimer.delay = infoTimerActive;
                 		
 	                	activateMonitoring(result);
@@ -365,14 +378,21 @@
 		                }
 	                	secondaryInfo.text = "\"" + result.current.schedule.parameters.title + "\"";
                 	} else if(result.current.state == "paused") {
+                		captureState = "paused";
+
 	                	deactivateMonitoring();
+
 	                	mainInfo.text = resourceManager.getString("EchoMonitor","active_capture_has_been_paused");
 	                	secondaryInfo.text = "\"" + result.current.schedule.parameters.title + "\"";
+
 	                	if(!configuration.hideControlButtons) {
 	                		resumeHBox.setVisible(true);
 	                	}
 	                } else if(result.current.schedule.parameters != undefined && result.current.state == "waiting") {
+	                	captureState = "waiting";
+
 	                	deactivateMonitoring();
+
 	                	infoTimer.delay = infoTimerActive;
 	                	difference = startTime.getTime()-now.getTime();
 	        	        var secondsToNextCapture:int = Math.round(difference/1000);
@@ -388,8 +408,11 @@
             	    	}
 	                	secondaryInfo.text = "\"" + result.current.schedule.parameters.title + "\"\n" + dateFormatter.format(startTime) + " @ " + timeFormatter.format(startTime) + " / " + durationInMinutes + " " + resourceManager.getString("EchoMonitor","minutes");
 	                }
-                } else if(result.next.parameters != undefined) {
+                } else if(result.next.parameters != undefined) { // Is there a capture scheduled in the future?
+                	captureState = null;
+
                 	deactivateMonitoring();
+
                 	infoTimer.delay = infoTimerIdle;
 	                startTime = isoToDate(result.next.child("start-time"));
         	        difference = startTime.getTime()-now.getTime();
@@ -419,10 +442,20 @@
         	        
         	        secondaryInfo.text = "\"" + result.next.parameters.title + "\"\n" + dateFormatter.format(startTime) + " @ " + timeFormatter.format(startTime) + " / " + durationInMinutes + " " + resourceManager.getString("EchoMonitor","minutes");;
         	    } else {
+        	    	captureState = null;
+
         	    	deactivateMonitoring();
+
         	    	infoTimer.delay = infoTimerIdle;
+
         	    	mainInfo.text = resourceManager.getString("EchoMonitor", "no_next_capture");
         	    	secondaryInfo.text = "";
+        	    }
+        	    
+        	    if(result.child("monitor-profiles").child("monitor-profile") != undefined) {
+        	    	monitoringProfile = result.child("monitor-profiles").child("monitor-profile");
+        	    } else {
+        	    	monitoringProfile = null;
         	    }
             } // private function infoHandler(event:ResultEvent):void {
 
@@ -484,7 +517,7 @@
             			monitorLabel = this["monitor" + monitorUsed + "Label"];
             			monitorError = this["monitor" + monitorUsed + "Error"];
                 		if(sources[i] && (sources[i].child("class") == "video" || sources[i].child("class") == "vga")) {
-                			if(sources[i].child("signal-present") == "true" || (sources[i].child("class") == "video" && configuration.ignoreMissingVideoSignal)) {
+                			if(sources[i].child("signal-present") == "true" || (sources[i].child("class") == "video" && configuration.ignoreMissingVideoSignal) || (sources[i].child("class") == "display" && configuration.ignoreMissingDisplaySignal)) {
                 				if(monitorError.visible) { // Check if the source error message is visible
 	                				monitorError.setVisible(false); // Hide source error message
 	                			}
@@ -764,6 +797,9 @@
 
 			// activateMonitoring
 			private function activateMonitoring(result:XML):void {
+				if(!configuration.hideControlButtons) {
+					controlHBox.setVisible(true);
+				}
 				monitorHandler(result);
 			} // activateMonitoring
 
@@ -776,6 +812,8 @@
 				if(doGlow.isPlaying) {
 					doGlow.stop();
 				}
+				
+				controlHBox.setVisible(false);
 				
 				monitorArea.filters = [okGlow];
 				audioErrorCount = 0;
@@ -845,11 +883,28 @@
 			} // applicationDeactivate
 
 
+			// startMonitoring
+			private function startMonitoring():void {
+				if(monitoringProfile !== null) {
+					var description:String = encodeURIComponent("Confidence Monitoring");
+					var duration:int = 900;
+					var capture_profile_name:String = encodeURIComponent(monitoringProfile);
+					controlHTTPService.url = applianceURL + "/capture/confidence_monitor";
+	            	controlHTTPService.send('description="' + description + '"&duration="' + duration.toString() + '"&capture_profile_name="' + capture_profile_name + '"');
+				} else {
+					debugMe("error", "No monitor-profile was found on the capture appliance! It is not possible to start monitoring without a monitor-profile specified.");
+				}
+			} // startMonitoring
+
+
 			// reportKeyDown
 			private function reportKeyDown(e:KeyboardEvent):void {
             	switch(e.keyCode) {
             		case Keyboard.A:
             			KeysDown.A = true;
+            			break;
+            		case Keyboard.B:
+            			KeysDown.B = true;
             			break;
             		case Keyboard.CONTROL:
             			KeysDown.CONTROL = true;
@@ -869,6 +924,15 @@
             		case Keyboard.L:
             			KeysDown.L = true;
             			break;
+            		case Keyboard.M:
+            			KeysDown.M = true;
+            			break;
+            		case Keyboard.P:
+            			KeysDown.P = true;
+            			break;
+            		case Keyboard.R:
+            			KeysDown.R = true;
+            			break;
             	}
             	checkKeys();
             } // reportKeyDown
@@ -879,6 +943,9 @@
             	switch(e.keyCode) {
             		case Keyboard.A:
             			KeysDown.A = false;
+            			break;
+            		case Keyboard.B:
+            			KeysDown.B = false;
             			break;
             		case Keyboard.CONTROL:
             			KeysDown.CONTROL = false;
@@ -898,6 +965,15 @@
             		case Keyboard.L:
             			KeysDown.L = false;
             			break;
+            		case Keyboard.M:
+            			KeysDown.M = false;
+            			break;
+            		case Keyboard.P:
+            			KeysDown.P = false;
+            			break;
+            		case Keyboard.R:
+            			KeysDown.R = false;
+            			break;
             	}
 				checkKeys();
             } // reportKeyUp
@@ -905,23 +981,38 @@
 
             // checkKeys
             private function checkKeys():void {
-            	if(KeysDown.CONTROL && KeysDown.H) { // Hides or shows the top control bar if CTRL+H is pressed on the keyboard
-            		monitorControlBar.visible = !monitorControlBar.visible;
-            	} else if(KeysDown.CONTROL && KeysDown.A) {
+            	if(KeysDown.CONTROL && KeysDown.A) { // Hides or shows the VU Meter if CTRL+A is pressed on the keyboard
             		configuration.hideVUMeter = !configuration.hideVUMeter;
+            	} else if(KeysDown.CONTROL && KeysDown.B) { // Hides or shows the capture control buttons if CTRL+B is pressed on the keyboard
+            		configuration.hideControlButtons = !configuration.hideControlButtons;
+            		if(captureState == "active" && !configuration.hideControlButtons) {
+            			resumeHBox.setVisible(false);
+            			controlHBox.setVisible(true);
+            		} else if (captureState == "paused" && !configuration.hideControlButtons) {
+            			resumeHBox.setVisible(true);
+            			controlHBox.setVisible(false);
+            		}
+            		if(configuration.hideControlButtons) {
+            			resumeHBox.setVisible(false);
+            			controlHBox.setVisible(false);
+            		}
             	} else if(KeysDown.CONTROL && KeysDown.D) { // Hides or shows the debugging area if CTRL+D is pressed on the keyboard
             		configuration.debug = !configuration.debug;
             		debugInfo.visible = !debugInfo.visible;
-            	} else if(KeysDown.CONTROL && KeysDown.E) { // Hides or shows the dcontrol buttons if CTRL+E is pressed on the keyboard
-            		configuration.hideControlButtons = !configuration.hideControlButtons;
-            		controlHBox.visible = !controlHBox.visible;
-            		if(configuration.hideControlButtons) {
-            			resumeHBox.setVisible(false);
-            		}
+            	} else if(KeysDown.CONTROL && KeysDown.E) { // Extends the capture if CTRL+E is pressed on the keyboard
+					actionClick("extend");
             	} else if(KeysDown.CONTROL && KeysDown.F) { // Toggles fullscreen if CTRL+F is pressed on the keyboard
             		changeView();
+				} else if(KeysDown.CONTROL && KeysDown.H) { // Hides or shows the top control bar if CTRL+H is pressed on the keyboard
+            		monitorControlBar.visible = !monitorControlBar.visible;
             	} else if(KeysDown.CONTROL && KeysDown.L) { // Hides or shows the source label on the monitoring images if CTRL+L is pressed on the keyboard
             		configuration.hideSourceLabel = !configuration.hideSourceLabel;
+            	} else if(KeysDown.CONTROL && KeysDown.M) { // Hides or shows the source label on the monitoring images if CTRL+L is pressed on the keyboard
+            		startMonitoring();
+            	} else if(KeysDown.CONTROL && KeysDown.P) { // Pauses the capture if CTRL+P is pressed on the keyboard
+            		actionClick("pause");
+            	} else if(KeysDown.CONTROL && KeysDown.R) { // Resumes the capture if CTRL+R is pressed on the keyboard
+            		actionClick("record");
             	}
             } // checkKeys
 
@@ -937,20 +1028,39 @@
             private function actionClick(target:String):void {
             	const dummyObject:Object = { "dummy" : "object" };
             	if(target === "stop") {
-            		controlHTTPService.url = applianceURL + "/capture/stop";
-            		controlHTTPService.send(dummyObject);
-            		debugMe("info", "The action (" + target + ") to control current capture is being sent to the appliance!");
+            		if(captureState == "active" || captureState == "paused" || captureState == "waiting") {
+	            		controlHTTPService.url = applianceURL + "/capture/stop";
+	            		debugMe("info", "Sending action " + target + " (" + controlHTTPService.url.toString() + ") to control current capture!");
+	            		controlHTTPService.send(dummyObject);
+            		} else {
+            			debugMe("error", "The action " + target + " can't be run in the state " + captureState + "!");
+            		}
             	} else if (target === "pause") {
-            		controlHTTPService.url = applianceURL + "/capture/pause";
-            		controlHTTPService.send(dummyObject);
+            		if(captureState == "active") {
+	            		controlHTTPService.url = applianceURL + "/capture/pause";
+	            		debugMe("info", "Sending action " + target + " (" + controlHTTPService.url.toString() + ") to control current capture!");
+	            		controlHTTPService.send(dummyObject);
+            		} else {
+            			debugMe("error", "The action " + target + " can't be run in the state " + captureState + "!");
+            		}
             	} else if (target === "extend") {
-            		controlHTTPService.url = applianceURL + "/capture/extend";
-            		controlHTTPService.send(dummyObject);
+            		if(captureState == "active") {
+	            		controlHTTPService.url = applianceURL + "/capture/extend";
+	            		debugMe("info", "Sending action " + target + " (" + controlHTTPService.url.toString() + ") to control current capture!");
+	            		controlHTTPService.send(dummyObject);
+            		} else {
+            			debugMe("error", "The action " + target + " can't be run in the state " + captureState + "!");
+            		}
             	} else if (target === "record") {
-            		controlHTTPService.url = applianceURL + "/capture/record";
-            		controlHTTPService.send(dummyObject);
+            		if(captureState == "paused" || captureState == "waiting") {
+	            		controlHTTPService.url = applianceURL + "/capture/record";
+	            		debugMe("info", "Sending action " + target + " (" + controlHTTPService.url.toString() + ") to control current capture!");
+	            		controlHTTPService.send(dummyObject);
+            		} else {
+            			debugMe("error", "The action " + target + " can't be run in the state " + captureState + "!");
+            		}
             	} else {
-            		debugMe("error", "The action (" + target + ") to control current capture is unknown!");
+            		debugMe("error", "The action " + target + " to control current capture is unknown!");
             	}
             } // actionClick
         ]]>
@@ -958,11 +1068,10 @@
 	<mx:ApplicationControlBar dock="true" id="monitorControlBar" y="0" x="0">
 		<mx:Image source="@Embed(source='assets/en_US.svg')" click="setLocale('en_US')" width="20" height="12"/>
 		<mx:Image source="@Embed(source='assets/et_EE.svg')" click="setLocale('et_EE')" width="20" height="12"/>
-<!--		<mx:Image source="@Embed(source='assets/fi_FI.svg')" click="setLocale('fi_FI')" width="20" height="12"/> -->
+		<!-- <mx:Image source="@Embed(source='assets/fi_FI.svg')" click="setLocale('fi_FI')" width="20" height="12"/> -->
 		<mx:Image source="@Embed(source='assets/ru_RU.svg')" click="setLocale('ru_RU')" width="20" height="12"/>
-		<mx:Spacer width="100%"/>
 		<mx:Label width="100%" textAlign="center" id="controlBarInfoLbl"/>
-		<mx:Spacer width="100%"/>
+		<mx:Button click="startMonitoring();" label="{resourceManager.getString('EchoMonitor', 'start_monitoring')}" id="startMonitoringBtn" visible="false"/>
     	<mx:Label text="{resourceManager.getString('EchoMonitor', 'select_room')}" id="chooseApplianceLbl" visible="false"/>
     	<mx:ComboBox rowCount="25" editable="false" id="applianceChooser" dataProvider="{appliances}" labelField="name" change="setMonitoredAppliance();" visible="false"></mx:ComboBox>
     	<mx:Button click="changeView();" label="{resourceManager.getString('EchoMonitor', 'exit_fullscreen')}" id="changeViewBtn"/>
@@ -1007,7 +1116,7 @@
 	    <mx:Text id="mainInfo" fontSize="30" color="#F0DCB9" width="90%" textAlign="center" paddingBottom="-10"/>
 	    <mx:Text id="secondaryInfo" fontSize="22" color="#F0DCB9" width="90%" textAlign="center"/>
 	    <mx:Spacer height="2%"/>
-		<mx:Canvas width="90%" id="monitorArea" visible="true" height="70%" backgroundColor="#090D0B" cornerRadius="10" borderColor="#090D0B" borderStyle="solid" showEffect="zoomIn" hideEffect="zoomOut" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+		<mx:Canvas width="90%" id="monitorArea" visible="false" height="70%" backgroundColor="#090D0B" cornerRadius="10" borderColor="#090D0B" borderStyle="solid" showEffect="zoomIn" hideEffect="zoomOut" horizontalScrollPolicy="off" verticalScrollPolicy="off">
 		    <mx:Image width="320" height="240" id="inputMonitor1" styleName="monitorImage" visible="false" horizontalCenter="-185" verticalCenter="20"/>
 		    <mx:Image source="@Embed(source='assets/vu1.png')" width="14" height="240" id="audioInputLevelVUMeter" visible="false" horizontalCenter="0" verticalCenter="20" maintainAspectRatio="false"/>
 		    <mx:Image source="@Embed(source='assets/vu2.png')" width="14" height="240" id="audioInputLevel" visible="false" horizontalCenter="0" maintainAspectRatio="false"/>
@@ -1018,20 +1127,25 @@
 		    <mx:Text text="" visible="false" horizontalCenter="-185" verticalCenter="20" color="#FF5100" width="320" fontSize="30" fontWeight="bold" textAlign="center" id="monitor1Error"/>
 		    <mx:Text text="" visible="false" horizontalCenter="185" verticalCenter="20" color="#FF5100" width="320" fontSize="30" fontWeight="bold" textAlign="center" id="monitor2Error"/>
 		    <mx:Text text="{resourceManager.getString('EchoMonitor', 'capture_is_live')}" visible="false" horizontalCenter="0" verticalCenter="160" color="#FF5100" width="90%" fontSize="20" fontWeight="bold" textAlign="center" id="captureIsLive"/>
-		    <mx:HBox width="90%" height="16%" horizontalAlign="center" id="controlHBox" horizontalCenter="0" verticalAlign="middle" verticalCenter="180">
-				<mx:Button label="{resourceManager.getString('EchoMonitor', 'stop_capture')}" id="stopButton1" color="#DDDDDD" width="200" height="50" fillColors="#ff0000"  fontSize="16" borderColor="#000000" themeColor="#000000" textRollOverColor="#FFFFFF" textSelectedColor="#FFFFFF" click="actionClick('stop');"/>
-				<mx:Button label="{resourceManager.getString('EchoMonitor', 'pause_capture')}" id="pauseButton" color="#DDDDDD" width="200" height="50" fillColors="#ffff00" fontSize="16" borderColor="#000000" themeColor="#000000" textRollOverColor="#FFFFFF" textSelectedColor="#FFFFFF" click="actionClick('pause');"/>
-				<mx:Button label="{resourceManager.getString('EchoMonitor', 'extend_capture')}" id="extendButton" color="#DDDDDD" width="200" height="50" fillColors="#00ff00" fontSize="16" borderColor="#000000" themeColor="#000000" textRollOverColor="#FFFFFF" textSelectedColor="#FFFFFF" click="actionClick('extend');"/>
-			</mx:HBox>
 	    </mx:Canvas>
+	    <mx:Spacer height="1%"/>
+	    <mx:HBox width="90%" height="16%" horizontalAlign="center" id="controlHBox" visible="false">
+			<mx:Button label="{resourceManager.getString('EchoMonitor', 'stop_capture')}" id="stopButton1" color="#DDDDDD" width="200" height="50" fillColors="#ff0000"  fontSize="16" borderColor="#000000" themeColor="#000000" textRollOverColor="#FFFFFF" textSelectedColor="#FFFFFF" click="actionClick('stop');"/>
+			<mx:Button label="{resourceManager.getString('EchoMonitor', 'pause_capture')}" id="pauseButton" color="#DDDDDD" width="200" height="50" fillColors="#ffff00" fontSize="16" borderColor="#000000" themeColor="#000000" textRollOverColor="#FFFFFF" textSelectedColor="#FFFFFF" click="actionClick('pause');"/>
+			<mx:Button label="{resourceManager.getString('EchoMonitor', 'extend_capture')}" id="extendButton" color="#DDDDDD" width="200" height="50" fillColors="#00ff00" fontSize="16" borderColor="#000000" themeColor="#000000" textRollOverColor="#FFFFFF" textSelectedColor="#FFFFFF" click="actionClick('extend');"/>
+		</mx:HBox>
 	</mx:VBox>
 	<mx:HBox width="90%" height="16%" horizontalAlign="center" id="resumeHBox" horizontalCenter="0" verticalAlign="middle" verticalCenter="0" visible="false">
 		<mx:Button label="{resourceManager.getString('EchoMonitor', 'stop_capture')}" id="stopButton2" color="#DDDDDD" width="200" height="50" fillColors="#ff0000"  fontSize="16" borderColor="#000000" themeColor="#000000" textRollOverColor="#FFFFFF" textSelectedColor="#FFFFFF" click="actionClick('stop');"/>
 		<mx:Button label="{resourceManager.getString('EchoMonitor', 'resume_capture')}" id="resumeButton" color="#DDDDDD" width="200" height="50" fillColors="#00ff00" fontSize="16" borderColor="#000000" themeColor="#000000" textRollOverColor="#FFFFFF" textSelectedColor="#FFFFFF" click="actionClick('record');"/>
 	</mx:HBox>
 	<mx:Canvas id="errorBox" visible="false" width="94%" height="85%" horizontalCenter="0" verticalCenter="0" backgroundColor="#000000" backgroundAlpha="0.2" cornerRadius="30" borderColor="#000000" borderStyle="solid" borderThickness="0" horizontalScrollPolicy="off" verticalScrollPolicy="off">
-		<mx:Text id="errorHeader" fontSize="44" color="#FF5100" width="90%" horizontalCenter="0" verticalCenter="-40" textAlign="center" text="Network Error!" fontWeight="normal"/>
+		<mx:Text id="errorHeader" fontSize="44" color="#FF5100" width="90%" horizontalCenter="0" verticalCenter="-40" textAlign="center" text="{resourceManager.getString('EchoMonitor', 'network_error')}" fontWeight="normal"/>
 		<mx:Text id="errorMessage" fontSize="22" color="#FF5100" width="90%" horizontalCenter="0" verticalCenter="40"  fontWeight="normal" text="" textAlign="center"/>
+	</mx:Canvas>
+	<mx:Canvas id="infoBox" visible="false" width="94%" height="85%" horizontalCenter="0" verticalCenter="0" backgroundColor="#000000" backgroundAlpha="0.2" cornerRadius="30" borderColor="#000000" borderStyle="solid" borderThickness="0" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+		<mx:Text id="infoHeader" fontSize="44" color="#DDDDDD" width="90%" horizontalCenter="0" verticalCenter="-40" textAlign="center" text="" fontWeight="normal"/>
+		<mx:Text id="infoMessage" fontSize="22" color="#DDDDDD" width="90%" horizontalCenter="0" verticalCenter="40"  fontWeight="normal" text="" textAlign="center"/>
 	</mx:Canvas>
 	<mx:TextArea width="90%" height="20%" id="debugInfo" visible="false" backgroundColor="#105761" color="#FFFFFF" backgroundAlpha="0.5" bottom="10" horizontalCenter="0"/>
 </mx:WindowedApplication>
