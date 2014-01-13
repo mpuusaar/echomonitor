@@ -24,7 +24,7 @@
 	<name>EchoMonitor</name>
 
 	<!-- An application version designator (such as "v1", "2.5", or "Alpha 1"). Required. -->
-	<version>0.9.12</version>
+	<version>0.9.13</version>
 
 	<!-- Description, displayed in the AIR application installer.
 	     May have multiple values for each language. See samples or xsd schema file. Optional. -->
@@ -32,7 +32,7 @@
 
 	<!-- Copyright information. Optional -->
 	<copyright>
-Copyright 2011-2013 Marko Puusaar / Information Technology Foundation for Education
+Copyright 2011-2014 Marko Puusaar / Information Technology Foundation for Education
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
