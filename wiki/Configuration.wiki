@@ -44,10 +44,23 @@ Normally a new configuration file looks like this:
 	<audioErrorLimit>20</audioErrorLimit>
 	<audioWarningLimit>10</audioWarningLimit>
 	<debug>false</debug>
+	<!--
+		Possible values for defaultLocale:
+			English (US) - en_US
+			Estonian - et_EE
+			Finish - fi_FI
+			Russian - ru_RU
+	-->
 	<defaultLocale>en_US</defaultLocale>
+	<enableCaptureControl>true</enableCaptureControl>
+	<hideControlButtons>false</hideControlButtons>
 	<hideLiveStreamInfo>false</hideLiveStreamInfo>
+	<hideSettingsButton>false</hideSettingsButton>
 	<hideSourceLabel>false</hideSourceLabel>
+	<hideStartMonitoringButton>true</hideStartMonitoringButton>
 	<hideVUMeter>false</hideVUMeter>
+	<ignoreMissingDisplaySignal>false</ignoreMissingDisplaySignal>
+	<ignoreMissingVideoSignal>false</ignoreMissingVideoSignal>
 	<infoTimerActive>3000</infoTimerActive>
 	<infoTimerIdle>10000</infoTimerIdle>
 	<showFirstApplianceAutomatically>true</showFirstApplianceAutomatically>
