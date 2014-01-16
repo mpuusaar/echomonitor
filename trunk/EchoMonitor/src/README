@@ -1,7 +1,7 @@
 **********************
 README for EchoMonitor
 **********************
-Last updated: 13th of January 2014
+Last updated: 16th of January 2014
 
 http://code.google.com/p/echomonitor/
 
@@ -40,6 +40,12 @@ The configuration file is in XML format and you can edit it with Notepad (Window
 
 Normally a new configuration file looks like this:
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+This is the configuration file for EchoMonitor application.
+Please have a look at the EchoMonitor documentation on configuration
+to get help on editing this configuration file:
+https://code.google.com/p/echomonitor/wiki/Configuration
+-->
 <configuration>
 	<appliances>
 		<appliance>
@@ -53,6 +59,8 @@ Normally a new configuration file looks like this:
 	<audioErrorLimit>20</audioErrorLimit>
 	<audioWarningLimit>10</audioWarningLimit>
 	<debug>false</debug>
+	<defaultAdHocDescription>Ad Hoc Capture</defaultAdHocDescription>
+	<defaultAdHocDuration>900</defaultAdHocDuration>
 	<!--
 		Possible values for defaultLocale:
 			English (US) - en_US
@@ -61,6 +69,8 @@ Normally a new configuration file looks like this:
 			Russian - ru_RU
 	-->
 	<defaultLocale>en_US</defaultLocale>
+	<defaultMonitoringDuration>900</defaultMonitoringDuration>
+	<enableAdHocCapture>false</enableAdHocCapture>
 	<enableCaptureControl>true</enableCaptureControl>
 	<hideControlButtons>false</hideControlButtons>
 	<hideLiveStreamInfo>false</hideLiveStreamInfo>
@@ -83,6 +93,11 @@ Just add your appliances information to the <appliances>...</appliances> section
 ************
 3) CHANGELOG
 ************
+Version 0.9.14
+- added the possibility to start Ad Hoc captures (affected by the configuration settings enableCaptureControl and enableAdHocCapture)
+- added icons to capture control buttons
+- fixed a lot of little bugs and security issues
+
 Version 0.9.13
 - added control buttons to stop, pause, extend and resume the capture (the buttons can be toggled on and off through configuration <hideControlButtons>false</hideControlButtons> or with the shortcut CTRL+B)
 - added a functionality to start monitoring from EchoMonitor application by using the shortcut CTRL+M and a optionally enablable "Start monitoring" button (<hideStartMonitoringButton>true</hideStartMonitoringButton>)

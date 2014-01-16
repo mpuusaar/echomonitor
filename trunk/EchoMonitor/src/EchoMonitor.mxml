@@ -133,15 +133,10 @@
             private var captureState:String = null;
             // End of application variables
 
-			// Configuration variables and their default values
-			private var audioErrorLevel:int = 5000;
-			private var audioErrorLimit:int = 20;
-			private var audioWarningLimit:int = 10;
+			// Create the configuration object
 			private var configuration:Object = new Object();
-            private var infoTimerActive:int = 3000;
-            private var infoTimerIdle:int = 10000;
-            // End on configuration variables
 
+			// Define some constants
             private const day:int = 1000 * 60 * 60 * 24;
             private const hour:int = 1000 * 60 * 60;
             private const minute:int = 1000 * 60;
@@ -152,6 +147,22 @@
             private var configurationFileStream:FileStream;
             private var configurationXML:XML;
             [Bindable] private var appliances:XMLListCollection;
+            
+            [Embed(source="assets/stop.png")]
+			[Bindable]
+			public var stopIcon:Class;
+            
+            [Embed(source="assets/pause.png")]
+			[Bindable]
+			public var pauseIcon:Class;
+			
+			[Embed(source="assets/next.png")]
+			[Bindable]
+			public var extendIcon:Class;
+			
+			[Embed(source="assets/play.png")]
+			[Bindable]
+			public var resumeIcon:Class;
 
             // initApp
             public function initApp(e:Event):void {
@@ -162,8 +173,13 @@
 				configuration.audioErrorLimit = 20;
 				configuration.audioWarningLimit = 10;
 				configuration.debug = false;
+				configuration.defaultAdHocDescription = "Ad Hoc Capture";
+				configuration.defaultAdHocDuration = 900;
 				configuration.defaultLocale = "en_US";
-				configuration.enableCaptureControl = false;
+				configuration.defaultMonitoringDuration = 900;
+				configuration.enableAdHocCapture = false;
+				configuration.enableCaptureControl = true;
+				configuration.hideAdHocButton = false;
 				configuration.hideControlButtons = false;
 				configuration.hideLiveStreamInfo = false;
 				configuration.hideStartMonitoringButton = true;
@@ -214,13 +230,13 @@
             	stage.addEventListener(KeyboardEvent.KEY_UP, reportKeyUp);
 				
 				monitorArea.filters = [okGlow];
-				errorHeader.filters = [okGlow];
-				errorMessage.filters = [okGlow];
+				infoHeader.filters = [okGlow];
+				infoMessage.filters = [okGlow];
 				
 				this.addEventListener(AIREvent.APPLICATION_ACTIVATE, applicationActivate);
 				this.addEventListener(AIREvent.APPLICATION_DEACTIVATE, applicationDeactivate);
 
-				infoTimer = new Timer(infoTimerIdle, 0);
+				infoTimer = new Timer(configuration.infoTimerIdle, 0);
 		        infoTimer.addEventListener("timer", infoTimerHandler);
 
 				monitorImageLoader[0] = new Loader(); // Just in case :) Theoretically this should never be used
@@ -231,7 +247,18 @@
 
 				if(configuration.showFirstApplianceAutomatically) { // Check if hte first appliance in the appliances list should be showed automatically
 					setMonitoredAppliance();
-		    	}
+		  		}
+		    	
+				stopButton1.setStyle("icon", stopIcon);
+				stopButton1.setStyle("horizontalGap", 10);
+				stopButton2.setStyle("icon", stopIcon);
+				stopButton2.setStyle("horizontalGap", 10);
+				pauseButton.setStyle("icon", pauseIcon);
+				pauseButton.setStyle("horizontalGap", 10);
+				extendButton.setStyle("icon", extendIcon);
+				extendButton.setStyle("horizontalGap", 10);
+				resumeButton.setStyle("icon", resumeIcon);
+				resumeButton.setStyle("horizontalGap", 10);
             } // initApp
             
             
@@ -253,17 +280,41 @@
             			});	
 					}
 					
-					audioErrorLevel = int(configurationXML.audioErrorLevel);
-					audioErrorLimit = int(configurationXML.audioErrorLimit);
-					audioWarningLimit = int(configurationXML.audioWarningLimit);
+					if(configurationXML.audioErrorLevel != undefined) {
+						configuration.audioErrorLevel = int(configurationXML.audioErrorLevel);
+					}
+					if(configurationXML.audioErrorLimit != undefined) {
+						configuration.audioErrorLimit = int(configurationXML.audioErrorLimit);
+					}
+					if(configurationXML.audioWarningLimit != undefined) {
+						configuration.audioWarningLimit = int(configurationXML.audioWarningLimit);
+					}
 					if(configurationXML.debug != undefined) {
 						configuration.debug = configurationXML.debug.toLowerCase() == "true";
+					}
+					if(configurationXML.audioWarningLimit != undefined) {
+						configuration.audioWarningLimit = int(configurationXML.audioWarningLimit);
+					}
+					if(configurationXML.defaultAdHocDescription != undefined) {
+						configuration.defaultAdHocDescription = String(configurationXML.defaultAdHocDescription);
+					}
+					if(configurationXML.defaultAdHocDuration != undefined) {
+						configuration.defaultAdHocDuration = int(configurationXML.defaultAdHocDuration);
 					}
 					if(configurationXML.defaultLocale != undefined) {
 						configuration.defaultLocale = String(configurationXML.defaultLocale);
 					}
+					if(configurationXML.defaultMonitoringDuration != undefined) {
+						configuration.defaultMonitoringDuration = int(configurationXML.defaultMonitoringDuration);
+					}
+					if(configurationXML.enableAdHocCapture != undefined) {
+						configuration.enableAdHocCapture = configurationXML.enableAdHocCapture.toLowerCase() == "true";
+					}
 					if(configurationXML.enableCaptureControl != undefined) {
-						configuration.enableCaptureControl = String(configurationXML.enableCaptureControl);
+						configuration.enableCaptureControl = configurationXML.enableCaptureControl.toLowerCase() == "true";
+					}
+					if(configurationXML.hideAdHocButton != undefined) {
+						configuration.hideAdHocButton = configurationXML.hideAdHocButton.toLowerCase() == "true";
 					}
 					if(configurationXML.hideControlButtons != undefined) {
 						configuration.hideControlButtons = configurationXML.hideControlButtons.toLowerCase() == "true";
@@ -289,8 +340,12 @@
 					if(configurationXML.ignoreMissingVideoSignal != undefined) {
 						configuration.ignoreMissingVideoSignal = configurationXML.ignoreMissingVideoSignal.toLowerCase() == "true";
 					}
-					infoTimerActive = int(configurationXML.infoTimerActive);
-					infoTimerIdle = int(configurationXML.infoTimerIdle);
+					if(configurationXML.infoTimerActive != undefined) {
+						configuration.infoTimerActive = int(configurationXML.infoTimerActive);
+					}
+					if(configurationXML.infoTimerIdle != undefined) {
+						configuration.infoTimerIdle = int(configurationXML.infoTimerIdle);
+					}
 					if(configurationXML.showFirstApplianceAutomatically != undefined) {
 						configuration.showFirstApplianceAutomatically = configurationXML.showFirstApplianceAutomatically.toLowerCase() == "true";
 					}
@@ -346,7 +401,7 @@
                 var minutesToNextCapture:int;
                 var hoursToNextCapture:int;
                 
-                deactivateErrorBox();
+                deactivateInfoBox();
             	networkErrorCount = 0; // Set the error count of network errors to 0
                 
 				debugMe("info","Result XML from infoHandler:\n" + result);
@@ -362,7 +417,7 @@
                 	if(result.current.state == "active") {
                 		captureState = "active";
 
-                		infoTimer.delay = infoTimerActive;
+                		infoTimer.delay = configuration.infoTimerActive;
                 		
 	                	activateMonitoring(result);
 	                	
@@ -393,7 +448,7 @@
 
 	                	deactivateMonitoring();
 
-	                	infoTimer.delay = infoTimerActive;
+	                	infoTimer.delay = configuration.infoTimerActive;
 	                	difference = startTime.getTime()-now.getTime();
 	        	        var secondsToNextCapture:int = Math.round(difference/1000);
 	        	        minutesToNextCapture = Math.round(difference/minute);
@@ -413,7 +468,7 @@
 
                 	deactivateMonitoring();
 
-                	infoTimer.delay = infoTimerIdle;
+                	infoTimer.delay = configuration.infoTimerIdle;
 	                startTime = isoToDate(result.next.child("start-time"));
         	        difference = startTime.getTime()-now.getTime();
         	        minutesToNextCapture = Math.round(difference/minute);
@@ -446,10 +501,16 @@
 
         	    	deactivateMonitoring();
 
-        	    	infoTimer.delay = infoTimerIdle;
+        	    	infoTimer.delay = configuration.infoTimerIdle;
 
         	    	mainInfo.text = resourceManager.getString("EchoMonitor", "no_next_capture");
         	    	secondaryInfo.text = "";
+        	    }
+        	    
+        	    if(networkErrorCount == 0 && captureState === null && configuration.enableCaptureControl && configuration.enableAdHocCapture) {
+        	    	adhocHBox.setVisible(true);
+        	    } else {
+        	    	adhocHBox.setVisible(false);
         	    }
         	    
         	    if(result.child("monitor-profiles").child("monitor-profile") != undefined) {
@@ -474,10 +535,10 @@
                 	var audioResult:XMLList = result.current.sources.source.(child("class").toString().search("audio")>-1);
                 	var audioPeakLevel:int = audioResult.channels.channel[1].peak;
 
-                	if(audioResult.child("signal-present") == "false" || audioPeakLevel <= audioErrorLevel) { // Audio signal missing
+                	if(audioResult.child("signal-present") == "false" || audioPeakLevel <= configuration.audioErrorLevel) { // Audio signal missing
                 		audioErrorCount++;
-                		if(audioErrorCount > audioWarningLimit) {
-                			if(audioErrorCount > audioErrorLimit) {
+                		if(audioErrorCount > configuration.audioWarningLimit) {
+                			if(audioErrorCount > configuration.audioErrorLimit) {
                 				error = true;
                 			} else {
                 				warning = true;
@@ -678,28 +739,33 @@
             	}
             	
             	if(networkErrorCount > 3) {
-            		activateErrorBox("httpFault");
+            		activateInfoBox("httpFault");
             	}
             	
                 debugMe("error", "httpFault: (" + source + ") " + event.fault.faultString + " [" + event.fault.faultCode + "] " + event.message);
             } // httpFault
 
 
-            private function activateErrorBox(type:String):void {
+            private function activateInfoBox(type:String, message:String = ""):void {
             	if(type == "httpFault") {
-					errorHeader.text = resourceManager.getString('EchoMonitor', 'connection_error_header');
-					errorMessage.text = resourceManager.getString('EchoMonitor', 'connection_error_message');
+					infoHeader.text = resourceManager.getString('EchoMonitor', 'connection_error_header');
+					infoMessage.text = resourceManager.getString('EchoMonitor', 'connection_error_message');
 					middleVBox.filters = [blurredBox];
-					errorBox.setVisible(true);
+					infoBox.setVisible(true);
+            	} else if(type == "pleasewait") {
+            		infoHeader.text = resourceManager.getString('EchoMonitor', 'please_wait');
+            		infoMessage.text = message;
+            		middleVBox.filters = [blurredBox];
+            		infoBox.setVisible(true);
             	}
-            } // activateErrorBox
+            } // activateInfoBox
 
 
-            private function deactivateErrorBox():void {
+            private function deactivateInfoBox():void {
             	middleVBox.filters = null;
-            	errorBox.setVisible(false);
+            	infoBox.setVisible(false);
             	resumeHBox.setVisible(false);
-            } // deactivateErrorBox
+            } // deactivateInfoBox
 
 
             // getMonitorImage
@@ -883,18 +949,40 @@
 			} // applicationDeactivate
 
 
-			// startMonitoring
-			private function startMonitoring():void {
-				if(monitoringProfile !== null) {
-					var description:String = encodeURIComponent("Confidence Monitoring");
-					var duration:int = 900;
-					var capture_profile_name:String = encodeURIComponent(monitoringProfile);
-					controlHTTPService.url = applianceURL + "/capture/confidence_monitor";
-	            	controlHTTPService.send('description="' + description + '"&duration="' + duration.toString() + '"&capture_profile_name="' + capture_profile_name + '"');
+			// startCapture
+			private function startCapture(type:String = "monitoring"):void {
+				if(configuration.enableCaptureControl) {
+					if(!(captureState == "active" || captureState == "paused" || captureState == "waiting")) {
+						if(monitoringProfile !== null) {
+							var description:String = "Capture";
+							var duration:int = 900;
+							var capture_profile_name:String = encodeURIComponent(monitoringProfile);
+							if(type == "ad-hoc" && configuration.enableAdHocCapture) {
+								description = configuration.defaultAdHocDescription;
+								duration = configuration.defaultAdHocDuration;
+								controlHTTPService.url = applianceURL + "/capture/new_capture";
+								adhocHBox.setVisible(false);
+								activateInfoBox("pleasewait", resourceManager.getString("EchoMonitor","starting_adhoc"));
+							} else if(type == "monitoring") {
+								description = "Confidence Monitoring";
+								duration = configuration.defaultMonitoringDuration;
+								controlHTTPService.url = applianceURL + "/capture/confidence_monitor";
+								activateInfoBox("pleasewait", resourceManager.getString("EchoMonitor","monitoring_is_starting"));
+							} else {
+								controlHTTPService.url = applianceURL + "/status";
+							}
+							controlHTTPService.send('description="' + encodeURIComponent(description) + '"&duration="' + duration.toString() + '"&capture_profile_name="' + capture_profile_name + '"');
+						} else {
+							debugMe("error", "No default capture profile (monitor-profile) was found on the capture appliance! It is not possible to start a capture without a default capture profile specified.");
+						}
+					} else {
+						debugMe("error", "Can't start a new capture while another capture is underway!");
+					}
 				} else {
-					debugMe("error", "No monitor-profile was found on the capture appliance! It is not possible to start monitoring without a monitor-profile specified.");
+					debugMe("error", "Can't start a new capture! Starting captures is not enabled (enableCaptureControl=false) in EchoMonitor configuration!");
 				}
-			} // startMonitoring
+
+			} // startCapture
 
 
 			// reportKeyDown
@@ -932,6 +1020,15 @@
             			break;
             		case Keyboard.R:
             			KeysDown.R = true;
+            			break;
+            		case Keyboard.S:
+            			KeysDown.S = true;
+            			break;
+            		case Keyboard.SHIFT:
+            			KeysDown.SHIFT = true;
+            			break;
+            		case Keyboard.V:
+            			KeysDown.V = true;
             			break;
             	}
             	checkKeys();
@@ -974,6 +1071,15 @@
             		case Keyboard.R:
             			KeysDown.R = false;
             			break;
+            		case Keyboard.S:
+            			KeysDown.S = false;
+            			break;
+            		case Keyboard.SHIFT:
+            			KeysDown.SHIFT = false;
+            			break;
+            		case Keyboard.V:
+            			KeysDown.V = false;
+            			break;
             	}
 				checkKeys();
             } // reportKeyUp
@@ -981,8 +1087,8 @@
 
             // checkKeys
             private function checkKeys():void {
-            	if(KeysDown.CONTROL && KeysDown.A) { // Hides or shows the VU Meter if CTRL+A is pressed on the keyboard
-            		configuration.hideVUMeter = !configuration.hideVUMeter;
+            	if(KeysDown.CONTROL && KeysDown.SHIFT && KeysDown.A) { // Hides or shows the VU Meter if CTRL+A is pressed on the keyboard
+            		startCapture("ad-hoc");
             	} else if(KeysDown.CONTROL && KeysDown.B) { // Hides or shows the capture control buttons if CTRL+B is pressed on the keyboard
             		configuration.hideControlButtons = !configuration.hideControlButtons;
             		if(captureState == "active" && !configuration.hideControlButtons) {
@@ -1008,11 +1114,15 @@
             	} else if(KeysDown.CONTROL && KeysDown.L) { // Hides or shows the source label on the monitoring images if CTRL+L is pressed on the keyboard
             		configuration.hideSourceLabel = !configuration.hideSourceLabel;
             	} else if(KeysDown.CONTROL && KeysDown.M) { // Hides or shows the source label on the monitoring images if CTRL+L is pressed on the keyboard
-            		startMonitoring();
+            		startCapture("monitoring");
             	} else if(KeysDown.CONTROL && KeysDown.P) { // Pauses the capture if CTRL+P is pressed on the keyboard
             		actionClick("pause");
             	} else if(KeysDown.CONTROL && KeysDown.R) { // Resumes the capture if CTRL+R is pressed on the keyboard
             		actionClick("record");
+            	} else if(KeysDown.CONTROL && KeysDown.S) { // Resumes the capture if CTRL+R is pressed on the keyboard
+            		actionClick("stop");
+            	} else if(KeysDown.CONTROL && KeysDown.SHIFT && KeysDown.V) { // Hides or shows the VU Meter if CTRL+A is pressed on the keyboard
+            		configuration.hideVUMeter = !configuration.hideVUMeter;
             	}
             } // checkKeys
 
@@ -1026,41 +1136,53 @@
             
             // actionClick
             private function actionClick(target:String):void {
-            	const dummyObject:Object = { "dummy" : "object" };
-            	if(target === "stop") {
-            		if(captureState == "active" || captureState == "paused" || captureState == "waiting") {
-	            		controlHTTPService.url = applianceURL + "/capture/stop";
-	            		debugMe("info", "Sending action " + target + " (" + controlHTTPService.url.toString() + ") to control current capture!");
-	            		controlHTTPService.send(dummyObject);
-            		} else {
-            			debugMe("error", "The action " + target + " can't be run in the state " + captureState + "!");
-            		}
-            	} else if (target === "pause") {
-            		if(captureState == "active") {
-	            		controlHTTPService.url = applianceURL + "/capture/pause";
-	            		debugMe("info", "Sending action " + target + " (" + controlHTTPService.url.toString() + ") to control current capture!");
-	            		controlHTTPService.send(dummyObject);
-            		} else {
-            			debugMe("error", "The action " + target + " can't be run in the state " + captureState + "!");
-            		}
-            	} else if (target === "extend") {
-            		if(captureState == "active") {
-	            		controlHTTPService.url = applianceURL + "/capture/extend";
-	            		debugMe("info", "Sending action " + target + " (" + controlHTTPService.url.toString() + ") to control current capture!");
-	            		controlHTTPService.send(dummyObject);
-            		} else {
-            			debugMe("error", "The action " + target + " can't be run in the state " + captureState + "!");
-            		}
-            	} else if (target === "record") {
-            		if(captureState == "paused" || captureState == "waiting") {
-	            		controlHTTPService.url = applianceURL + "/capture/record";
-	            		debugMe("info", "Sending action " + target + " (" + controlHTTPService.url.toString() + ") to control current capture!");
-	            		controlHTTPService.send(dummyObject);
-            		} else {
-            			debugMe("error", "The action " + target + " can't be run in the state " + captureState + "!");
-            		}
+            	if(configuration.enableCaptureControl) {
+	            	const dummyObject:Object = { "dummy" : "object" };
+	            	if(target === "stop") {
+	            		if(captureState == "active" || captureState == "paused" || captureState == "waiting") {
+		            		controlHTTPService.url = applianceURL + "/capture/stop";
+		            		debugMe("info", "Sending action " + target + " (" + controlHTTPService.url.toString() + ") to control current capture!");
+		            		activateInfoBox("pleasewait", resourceManager.getString("EchoMonitor","stopping_capture"));
+		            		controlHTTPService.send(dummyObject);
+	            		} else {
+	            			debugMe("error", "The action " + target + " can't be run in the state " + captureState + "!");
+	            		}
+	            	} else if (target === "pause") {
+	            		if(captureState == "active") {
+		            		controlHTTPService.url = applianceURL + "/capture/pause";
+		            		debugMe("info", "Sending action " + target + " (" + controlHTTPService.url.toString() + ") to control current capture!");
+		            		activateInfoBox("pleasewait", resourceManager.getString("EchoMonitor","pausing_capture"));
+		            		controlHTTPService.send(dummyObject);
+	            		} else {
+	            			debugMe("error", "The action " + target + " can't be run in the state " + captureState + "!");
+	            		}
+	            	} else if (target === "extend") {
+	            		if(captureState == "active") {
+		            		controlHTTPService.url = applianceURL + "/capture/extend";
+		            		debugMe("info", "Sending action " + target + " (" + controlHTTPService.url.toString() + ") to control current capture!");
+		            		activateInfoBox("pleasewait", resourceManager.getString("EchoMonitor","extending_capture"));
+		            		controlHTTPService.send(dummyObject);
+	            		} else {
+	            			debugMe("error", "The action " + target + " can't be run in the state " + captureState + "!");
+	            		}
+	            	} else if (target === "record") {
+	            		if(captureState == "paused" || captureState == "waiting") {
+		            		controlHTTPService.url = applianceURL + "/capture/record";
+		            		debugMe("info", "Sending action " + target + " (" + controlHTTPService.url.toString() + ") to control current capture!");
+		            		if(captureState == "paused") {
+		            			activateInfoBox("pleasewait", resourceManager.getString("EchoMonitor","resuming_capture"));
+		            		} else if(captureState == "waiting") {
+		            			activateInfoBox("pleasewait", resourceManager.getString("EchoMonitor","starting_capture"));
+		            		}
+		            		controlHTTPService.send(dummyObject);
+	            		} else {
+	            			debugMe("error", "The action " + target + " can't be run in the state " + captureState + "!");
+	            		}
+	            	} else {
+	            		debugMe("error", "The action " + target + " to control current capture is unknown!");
+	            	}
             	} else {
-            		debugMe("error", "The action " + target + " to control current capture is unknown!");
+            		debugMe("error", "Controlling of captures is not enabled (enableCaptureControl=false) in EchoMonitor configuration!");
             	}
             } // actionClick
         ]]>
@@ -1071,7 +1193,7 @@
 		<!-- <mx:Image source="@Embed(source='assets/fi_FI.svg')" click="setLocale('fi_FI')" width="20" height="12"/> -->
 		<mx:Image source="@Embed(source='assets/ru_RU.svg')" click="setLocale('ru_RU')" width="20" height="12"/>
 		<mx:Label width="100%" textAlign="center" id="controlBarInfoLbl"/>
-		<mx:Button click="startMonitoring();" label="{resourceManager.getString('EchoMonitor', 'start_monitoring')}" id="startMonitoringBtn" visible="false"/>
+		<mx:Button click="startCapture('monitoring');" label="{resourceManager.getString('EchoMonitor', 'start_monitoring')}" id="startMonitoringBtn" visible="false"/>
     	<mx:Label text="{resourceManager.getString('EchoMonitor', 'select_room')}" id="chooseApplianceLbl" visible="false"/>
     	<mx:ComboBox rowCount="25" editable="false" id="applianceChooser" dataProvider="{appliances}" labelField="name" change="setMonitoredAppliance();" visible="false"></mx:ComboBox>
     	<mx:Button click="changeView();" label="{resourceManager.getString('EchoMonitor', 'exit_fullscreen')}" id="changeViewBtn"/>
@@ -1139,13 +1261,12 @@
 		<mx:Button label="{resourceManager.getString('EchoMonitor', 'stop_capture')}" id="stopButton2" color="#DDDDDD" width="200" height="50" fillColors="#ff0000"  fontSize="16" borderColor="#000000" themeColor="#000000" textRollOverColor="#FFFFFF" textSelectedColor="#FFFFFF" click="actionClick('stop');"/>
 		<mx:Button label="{resourceManager.getString('EchoMonitor', 'resume_capture')}" id="resumeButton" color="#DDDDDD" width="200" height="50" fillColors="#00ff00" fontSize="16" borderColor="#000000" themeColor="#000000" textRollOverColor="#FFFFFF" textSelectedColor="#FFFFFF" click="actionClick('record');"/>
 	</mx:HBox>
-	<mx:Canvas id="errorBox" visible="false" width="94%" height="85%" horizontalCenter="0" verticalCenter="0" backgroundColor="#000000" backgroundAlpha="0.2" cornerRadius="30" borderColor="#000000" borderStyle="solid" borderThickness="0" horizontalScrollPolicy="off" verticalScrollPolicy="off">
-		<mx:Text id="errorHeader" fontSize="44" color="#FF5100" width="90%" horizontalCenter="0" verticalCenter="-40" textAlign="center" text="{resourceManager.getString('EchoMonitor', 'network_error')}" fontWeight="normal"/>
-		<mx:Text id="errorMessage" fontSize="22" color="#FF5100" width="90%" horizontalCenter="0" verticalCenter="40"  fontWeight="normal" text="" textAlign="center"/>
-	</mx:Canvas>
+	<mx:HBox width="90%" height="26%" horizontalAlign="center" id="adhocHBox" horizontalCenter="0" verticalAlign="middle" verticalCenter="0" visible="false">
+		<mx:Button label="{resourceManager.getString('EchoMonitor', 'start_adhoc_capture')}" id="adhocButton" color="#DDDDDD" width="40%" height="100" fillColors="#00ff00" fontSize="20" borderColor="#000000" themeColor="#000000" textRollOverColor="#FFFFFF" textSelectedColor="#FFFFFF" click="startCapture('ad-hoc');"/>
+	</mx:HBox>
 	<mx:Canvas id="infoBox" visible="false" width="94%" height="85%" horizontalCenter="0" verticalCenter="0" backgroundColor="#000000" backgroundAlpha="0.2" cornerRadius="30" borderColor="#000000" borderStyle="solid" borderThickness="0" horizontalScrollPolicy="off" verticalScrollPolicy="off">
-		<mx:Text id="infoHeader" fontSize="44" color="#DDDDDD" width="90%" horizontalCenter="0" verticalCenter="-40" textAlign="center" text="" fontWeight="normal"/>
-		<mx:Text id="infoMessage" fontSize="22" color="#DDDDDD" width="90%" horizontalCenter="0" verticalCenter="40"  fontWeight="normal" text="" textAlign="center"/>
+		<mx:Text id="infoHeader" fontSize="44" color="#FF5100" width="90%" horizontalCenter="0" verticalCenter="-40" textAlign="center" text="" fontWeight="normal"/>
+		<mx:Text id="infoMessage" fontSize="22" color="#FF5100" width="90%" horizontalCenter="0" verticalCenter="40"  fontWeight="normal" text="" textAlign="center"/>
 	</mx:Canvas>
 	<mx:TextArea width="90%" height="20%" id="debugInfo" visible="false" backgroundColor="#105761" color="#FFFFFF" backgroundAlpha="0.5" bottom="10" horizontalCenter="0"/>
 </mx:WindowedApplication>

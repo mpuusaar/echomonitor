@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+This is the configuration file for EchoMonitor application.
+Please have a look at the EchoMonitor documentation on configuration
+to get help on editing this configuration file:
+https://code.google.com/p/echomonitor/wiki/Configuration
+-->
 <configuration>
 	<appliances>
 		<appliance>
@@ -12,6 +18,8 @@
 	<audioErrorLimit>20</audioErrorLimit>
 	<audioWarningLimit>10</audioWarningLimit>
 	<debug>false</debug>
+	<defaultAdHocDescription>Ad Hoc Capture</defaultAdHocDescription>
+	<defaultAdHocDuration>900</defaultAdHocDuration>
 	<!--
 		Possible values for defaultLocale:
 			English (US) - en_US
@@ -20,6 +28,8 @@
 			Russian - ru_RU
 	-->
 	<defaultLocale>en_US</defaultLocale>
+	<defaultMonitoringDuration>900</defaultMonitoringDuration>
+	<enableAdHocCapture>false</enableAdHocCapture>
 	<enableCaptureControl>true</enableCaptureControl>
 	<hideControlButtons>false</hideControlButtons>
 	<hideLiveStreamInfo>false</hideLiveStreamInfo>
