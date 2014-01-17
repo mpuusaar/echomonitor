@@ -3,12 +3,20 @@
 
 *Next scheduled capture:*
 
-<img src="http://estmarx.pri.ee/echomonitor/screenshots/echomonitor_3.png" width="600" height="375" />
-
-*Current capture (without problems):*
-
 <img src="http://estmarx.pri.ee/echomonitor/screenshots/echomonitor_1.png" width="600" height="375" />
 
-*Current capture (no audio):*
+*Next scheduled capture (with Ad Hoc captures enabled):*
 
 <img src="http://estmarx.pri.ee/echomonitor/screenshots/echomonitor_2.png" width="600" height="375" />
+
+*Current capture (no problems):*
+
+<img src="http://estmarx.pri.ee/echomonitor/screenshots/echomonitor_3.png" width="600" height="375" />
+
+*Current capture with missing audio:*
+
+<img src="http://estmarx.pri.ee/echomonitor/screenshots/echomonitor_4.png" width="600" height="375" />
+
+*Paused capture:*
+
+<img src="http://estmarx.pri.ee/echomonitor/screenshots/echomonitor_5.png" width="600" height="375" />
