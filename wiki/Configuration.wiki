@@ -31,6 +31,12 @@ The configuration file is in XML format and can be edited with Notepad or WordPa
 Normally a new configuration file looks like this:
 {{{
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+This is the configuration file for EchoMonitor application.
+Please have a look at the EchoMonitor documentation on configuration
+to get help on editing this configuration file:
+https://code.google.com/p/echomonitor/wiki/Configuration
+-->
 <configuration>
 	<appliances>
 		<appliance>
@@ -44,6 +50,8 @@ Normally a new configuration file looks like this:
 	<audioErrorLimit>20</audioErrorLimit>
 	<audioWarningLimit>10</audioWarningLimit>
 	<debug>false</debug>
+	<defaultAdHocDescription>Ad Hoc Capture</defaultAdHocDescription>
+	<defaultAdHocDuration>900</defaultAdHocDuration>
 	<!--
 		Possible values for defaultLocale:
 			English (US) - en_US
@@ -52,6 +60,8 @@ Normally a new configuration file looks like this:
 			Russian - ru_RU
 	-->
 	<defaultLocale>en_US</defaultLocale>
+	<defaultMonitoringDuration>900</defaultMonitoringDuration>
+	<enableAdHocCapture>false</enableAdHocCapture>
 	<enableCaptureControl>true</enableCaptureControl>
 	<hideControlButtons>false</hideControlButtons>
 	<hideLiveStreamInfo>false</hideLiveStreamInfo>
@@ -91,7 +101,11 @@ This section will describe all the advanced configuration options available for 
 ||<audioErrorLimit>20</audioErrorLimit>||  ||
 ||<audioWarningLimit>10</audioWarningLimit>||  ||
 ||<debug>false</debug>|| If this option is marked _true_ EchoMonitor will show a small debugging window at the bottom of the EchoMonitor interface. ||
-||<defaultLocale>en_US</defaultLocale>|| This option sets the default locale for EchoMonitor that is used for the interface when the program starts up. ||
+||<defaultAdHocDescription>Ad Hoc Capture</defaultAdHocDescription>||  ||
+||<defaultAdHocDuration>900</defaultAdHocDuration>||  ||
+||<defaultLocale>en_US</defaultLocale>|| This option sets the default locale for EchoMonitor that is used for the interface when the program starts up.||
+||<defaultMonitoringDuration>900</defaultMonitoringDuration>||  ||
+||<enableAdHocCapture>false</enableAdHocCapture>||  ||
 ||<enableCaptureControl>true</enableCaptureControl>|| If this option is marked _true_ then the user of EchoMonitor can control the current capture by stopping, pausing, extending and resuming of paused captures. The default for this option is _true_. The option _<hideControlButtons>false</hideControlButtons>_ is directly connected to this option. ||
 ||<hideLiveStreamInfo>false</hideLiveStreamInfo>||  ||
 ||<hideSettingsButton>false</hideSettingsButton>|| If this option is marked _true_ then the "Settings" button on the menu bar will be hidden. The default for this option is _false_. ||
