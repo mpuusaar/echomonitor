@@ -7,7 +7,7 @@ EchoMonitor 0.9.14 adds quite a few new features and fixes to the good old monit
 
 = Downloading =
 
-The EchoMonitor 0.9.14 release can be downloaded from the following URL: http://estmarx.pri.ee/echomonitor/EchoMonitor_0.9.14.air
+<div><a href="http://estmarx.pri.ee/echomonitor/EchoMonitor_0.9.14.air"><img src="http://estmarx.pri.ee/echomonitor/download_icon.png" alt="Download" title="Download" /><img src="http://estmarx.pri.ee/echomonitor/download_text.png" alt="Download" title="Download" /></a></div>
 
 = Details =
 
