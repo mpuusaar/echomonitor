@@ -2,7 +2,7 @@
 #labels Featured
 
 There are two simple shortcuts in EchoMonitor:
- # Pressing *CTRL+A* on your keyboard *hides or shows the audio level (VU) monitoring*.
+ # Pressing *CTRL+SHIFT+A* on your keyboard *starts an Ad Hoc capture (if this functionality is enabled)*.
  # Pressing *CTRL+B* on your keyboard *hides or shows the capture control buttons*.
  # Pressing *CTRL+D* on your keyboard *hides or shows the debugging area* at the bottom of EchoMonitor.
  # Pressing *CTRL+E* on your keyboard *extends the current capture by 10 minutes*.
@@ -12,3 +12,5 @@ There are two simple shortcuts in EchoMonitor:
  # Pressing *CTRL+M* on your keyboard *starts a new monitoring session* on the currently selected appliance.
  # Pressing *CTRL+P* on your keyboard *pauses the current capture*.
  # Pressing *CTRL+R* on your keyboard *resumes the currently paused capture*.
+ # Pressing *CTRL+S* on your keyboard *stops the current capture*.
+ # Pressing *CTRL+SHIFT+V* on your keyboard *hides or shows the audio level (VU) monitoring*.
